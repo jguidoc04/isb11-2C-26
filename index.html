@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arquitectura de Computadoras</title>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #020617, #0f172a, #111827);
+      color: white;
+      overflow-x: hidden;
+    }
+
+    header {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 40px;
+      position: relative;
+    }
+
+    header::before {
+      content: '';
+      position: absolute;
+      width: 500px;
+      height: 500px;
+      background: rgba(0, 255, 255, 0.15);
+      filter: blur(120px);
+      border-radius: 50%;
+      top: -100px;
+      right: -100px;
+      z-index: 0;
+    }
+
+    header::after {
+      content: '';
+      position: absolute;
+      width: 400px;
+      height: 400px;
+      background: rgba(0, 255, 150, 0.15);
+      filter: blur(120px);
+      border-radius: 50%;
+      bottom: -100px;
+      left: -100px;
+      z-index: 0;
+    }
+
+    .hero {
+      position: relative;
+      z-index: 1;
+      max-width: 1000px;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 10px 20px;
+      background: rgba(0,255,255,0.1);
+      border: 1px solid rgba(0,255,255,0.4);
+      border-radius: 50px;
+      color: #67e8f9;
+      margin-bottom: 30px;
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      font-size: 4rem;
+      line-height: 1.2;
+      margin-bottom: 25px;
+    }
+
+    .cyan {
+      color: #22d3ee;
+    }
+
+    .green {
+      color: #4ade80;
+    }
+
+    .hero p {
+      font-size: 1.2rem;
+      color: #cbd5e1;
+      line-height: 1.8;
+      margin-bottom: 40px;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      padding: 15px 30px;
+      border-radius: 15px;
+      text-decoration: none;
+      font-weight: bold;
+      transition: 0.3s;
+    }
+
+    .btn-primary {
+      background: #22d3ee;
+      color: #020617;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 15px 30px rgba(34,211,238,0.4);
+    }
+
+    .btn-secondary {
+      border: 1px solid #334155;
+      color: white;
+      background: rgba(15,23,42,0.5);
+    }
+
+    .btn-secondary:hover {
+      border-color: #22d3ee;
+      transform: translateY(-5px);
+    }
+
+    .cards {
+      max-width: 1300px;
+      margin: auto;
+      padding: 80px 40px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+
+    .card {
+      background: rgba(15,23,42,0.7);
+      border: 1px solid #1e293b;
+      border-radius: 25px;
+      padding: 40px;
+      transition: 0.4s;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      color: white;
+      backdrop-filter: blur(12px);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(34,211,238,0.15), rgba(59,130,246,0.15));
+      opacity: 0;
+      transition: 0.4s;
+    }
+
+    .card:hover::before {
+      opacity: 1;
+    }
+
+    .card:hover {
+      transform: translateY(-12px);
+      border-color: #22d3ee;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+    .card-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 2rem;
+      margin-bottom: 20px;
+    }
+
+    .card p {
+      color: #cbd5e1;
+      line-height: 1.8;
+      margin-bottom: 30px;
+    }
+
+    .enter {
+      color: #22d3ee;
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+
+    .features {
+      max-width: 1200px;
+      margin: auto;
+      padding: 0 40px 100px;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 25px;
+    }
+
+    .feature-box {
+      background: rgba(15,23,42,0.7);
+      border: 1px solid #1e293b;
+      border-radius: 25px;
+      padding: 35px;
+      backdrop-filter: blur(10px);
+    }
+
+    .feature-box h3 {
+      margin-bottom: 15px;
+      font-size: 1.6rem;
+    }
+
+    .feature-box p {
+      color: #cbd5e1;
+      line-height: 1.8;
+    }
+
+    footer {
+      border-top: 1px solid #1e293b;
+      text-align: center;
+      padding: 30px;
+      color: #94a3b8;
+      background: rgba(2,6,23,0.8);
+    }
+
+    @media(max-width: 768px) {
+      h1 {
+        font-size: 2.5rem;
+      }
+
+      .hero p {
+        font-size: 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="hero">
+      <div class="badge">
+        Fundamentos de Computación Digital
+      </div>
+
+      <h1>
+        De las <span class="cyan">Compuertas Lógicas</span><br>
+        hasta la <span class="green">Arquitectura de Computadoras</span>
+      </h1>
+
+      <p>
+        Aprende visualmente cómo funcionan los circuitos digitales,
+        los procesadores y la arquitectura interna de las computadoras
+        modernas mediante simuladores interactivos y ejemplos prácticos.
+      </p>
+
+      <div class="buttons">
+        <a href="#modulos" class="btn btn-primary">Explorar módulos</a>
+        <a href="arquitectura-computadora.html" class="btn btn-secondary">
+          Ver Arquitectura
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <section class="cards" id="modulos">
+
+    <a href="compuertas-logicas.html" class="card">
+      <div class="card-content">
+        <div class="icon">⚡</div>
+        <h2>Compuertas Lógicas</h2>
+        <p>
+          Explora cómo funcionan las compuertas AND, OR, NOT y XOR,
+          y cómo forman la base de toda computadora moderna.
+        </p>
+        <div class="enter">Entrar →</div>
+      </div>
+    </a>
+
+    <a href="cpu-simulador.html" class="card">
+      <div class="card-content">
+        <div class="icon">🖥️</div>
+        <h2>CPU Simulador</h2>
+        <p>
+          Simula registros, memoria y el ciclo de instrucciones
+          de un procesador en tiempo real.
+        </p>
+        <div class="enter">Entrar →</div>
+      </div>
+    </a>
+
+    <a href="arquitectura-computadora.html" class="card">
+      <div class="card-content">
+        <div class="icon">💾</div>
+        <h2>Arquitectura Computadora</h2>
+        <p>
+          Descubre cómo interactúan CPU, RAM, buses y almacenamiento
+          dentro de una computadora moderna.
+        </p>
+        <div class="enter">Entrar →</div>
+      </div>
+    </a>
+
+  </section>
+
+  <section class="features">
+
+    <div class="feature-box">
+      <h3 style="color:#22d3ee;">Circuitos Digitales</h3>
+      <p>
+        Comprende cómo señales binarias realizan operaciones complejas
+        dentro de un procesador.
+      </p>
+    </div>
+
+    <div class="feature-box">
+      <h3 style="color:#a855f7;">Simulación Interactiva</h3>
+      <p>
+        Visualiza registros, memoria y flujo de datos como si estuvieras
+        dentro de una CPU real.
+      </p>
+    </div>
+
+    <div class="feature-box">
+      <h3 style="color:#4ade80;">Arquitectura Moderna</h3>
+      <p>
+        Aprende cómo se conectan CPU, RAM, buses y dispositivos
+        para formar un sistema computacional completo.
+      </p>
+    </div>
+
+  </section>
+
+  <footer>
+    Proyecto educativo sobre lógica digital y arquitectura de computadoras.
+  </footer>
+
+</body>
+</html>

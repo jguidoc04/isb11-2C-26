@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>De Transistores a Computadora</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --bg2: #0f1117;
+    --bg3: #161b26;
+    --border: #1e2535;
+    --accent: #00d4ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --glow: rgba(0,212,255,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .layout {
+    display: flex;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* LEFT: Flow column */
+  .flow-col {
+    width: 340px;
+    min-width: 340px;
+    padding: 40px 24px 60px;
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+    background: var(--bg2);
+  }
+
+  .flow-header {
+    margin-bottom: 32px;
+  }
+
+  .flow-header h1 {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--accent);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .flow-header p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* Flow nodes */
+  .flow-nodes {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .flow-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .node-btn {
+    width: 100%;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .node-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--glow);
+    opacity: 0;
+    transition: opacity 0.22s;
+  }
+
+  .node-btn:hover::before,
+  .node-btn.active::before { opacity: 1; }
+
+  .node-btn:hover, .node-btn.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 20px rgba(0,212,255,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+
+  .node-btn.active {
+    border-color: var(--accent);
+    box-shadow: 0 0 28px rgba(0,212,255,0.2), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  .node-level {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+
+  .node-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .node-name span.tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(0,212,255,0.1);
+    color: var(--accent);
+    border: 1px solid rgba(0,212,255,0.2);
+    white-space: nowrap;
+  }
+
+  .node-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  /* Connector arrow between nodes */
+  .connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2px;
+    min-height: 28px;
+    position: relative;
+    margin: 0 auto;
+  }
+
+  .connector::before {
+    content: '';
+    position: absolute;
+    top: 0; bottom: 0;
+    left: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, rgba(0,212,255,0.4), rgba(124,58,237,0.4));
+  }
+
+  .connector-arrow {
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: var(--accent);
+    font-size: 10px;
+    opacity: 0.6;
+  }
+
+  /* Animated dot going down */
+  .connector-dot {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+    left: -1px;
+    animation: flowDown 2s ease-in-out infinite;
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  @keyframes flowDown {
+    0%   { top: 0; opacity: 0; }
+    20%  { opacity: 1; }
+    80%  { opacity: 1; }
+    100% { top: calc(100% - 4px); opacity: 0; }
+  }
+
+  /* RIGHT: Detail panel */
+  .detail-col {
+    flex: 1;
+    padding: 40px 48px;
+    min-width: 0;
+  }
+
+  .detail-panel {
+    display: none;
+    animation: fadeIn 0.3s ease;
+    max-width: 760px;
+  }
+
+  .detail-panel.visible { display: block; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .detail-badge {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .detail-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .detail-subtitle {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 28px;
+    max-width: 600px;
+  }
+
+  /* Concept cards */
+  .concepts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 28px;
+  }
+
+  .concept-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    transition: border-color 0.2s;
+  }
+
+  .concept-card:hover { border-color: rgba(0,212,255,0.3); }
+
+  .concept-icon {
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+
+  .concept-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .concept-desc {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* SVG diagrams */
+  .diagram-wrap {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .diagram-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    letter-spacing: 0.06em;
+  }
+
+  /* Truth table */
+  table.truth {
+    border-collapse: collapse;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    width: auto;
+  }
+
+  table.truth th {
+    padding: 6px 16px;
+    background: rgba(0,212,255,0.08);
+    border: 1px solid var(--border);
+    color: var(--accent);
+    font-size: 11px;
+    letter-spacing: 0.08em;
+  }
+
+  table.truth td {
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    text-align: center;
+    color: var(--muted);
+  }
+
+  table.truth td.hi { color: var(--accent3); }
+  table.truth td.lo { color: var(--muted); }
+
+  /* Interactive gate selector */
+  .gate-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+
+  .gate-tab {
+    padding: 5px 14px;
+    border-radius: 6px;
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+
+  .gate-tab:hover, .gate-tab.active {
+    background: rgba(0,212,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Binary toggle inputs */
+  .bit-input {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    margin: 4px 8px;
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    user-select: none;
+  }
+
+  .bit-box {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+
+  .bit-box.on {
+    background: rgba(16,185,129,0.15);
+    border-color: var(--accent3);
+    color: var(--accent3);
+    box-shadow: 0 0 12px rgba(16,185,129,0.2);
+  }
+
+  .bit-box.off {
+    background: rgba(100,116,139,0.08);
+    border-color: var(--border);
+    color: var(--muted);
+  }
+
+  .result-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 8px;
+    border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    background: rgba(0,212,255,0.08);
+    color: var(--accent);
+    box-shadow: 0 0 16px rgba(0,212,255,0.15);
+    transition: all 0.15s;
+  }
+
+  .interactive-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 12px 0;
+  }
+
+  .op-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 14px;
+    color: var(--accent2);
+    padding: 0 4px;
+  }
+
+  /* ALU demo */
+  .alu-op-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+
+  /* Register file viz */
+  .reg-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+
+  .reg-cell {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px;
+    font-family: 'Space Mono', monospace;
+    transition: all 0.2s;
+  }
+
+  .reg-cell.active {
+    border-color: var(--accent);
+    background: rgba(0,212,255,0.05);
+    box-shadow: 0 0 8px rgba(0,212,255,0.1);
+  }
+
+  .reg-name { font-size: 10px; color: var(--accent); margin-bottom: 4px; }
+  .reg-val  { font-size: 13px; color: var(--text); }
+
+  /* Memory grid */
+  .mem-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 4px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .mem-cell {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 6px 2px;
+    text-align: center;
+    font-size: 10px;
+    color: var(--muted);
+    transition: all 0.3s;
+    cursor: default;
+  }
+
+  .mem-cell.lit {
+    background: rgba(124,58,237,0.2);
+    border-color: var(--accent2);
+    color: var(--text);
+    box-shadow: 0 0 6px rgba(124,58,237,0.3);
+  }
+
+  .mem-cell.active {
+    background: rgba(0,212,255,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 0 8px rgba(0,212,255,0.3);
+  }
+
+  /* Progress bar for "build" */
+  .build-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 16px;
+  }
+
+  .build-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+  }
+
+  .build-row-label {
+    width: 140px;
+    color: var(--muted);
+    font-size: 11px;
+    text-align: right;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .build-bar {
+    flex: 1;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .build-fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent));
+    transition: width 0.8s ease;
+  }
+
+  /* CPU diagram box */
+  .cpu-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .cpu-section {
+    display: flex;
+    gap: 10px;
+  }
+
+  .cpu-unit {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+  }
+
+  .cpu-unit.alu-u { border-color: rgba(0,212,255,0.3); color: var(--accent); background: rgba(0,212,255,0.05); }
+  .cpu-unit.cu-u  { border-color: rgba(124,58,237,0.3); color: var(--accent2); background: rgba(124,58,237,0.05); }
+  .cpu-unit.reg-u { border-color: rgba(16,185,129,0.3); color: var(--accent3); background: rgba(16,185,129,0.05); }
+  .cpu-unit small { display:block; font-size:10px; font-weight:400; color:var(--muted); margin-top:4px; }
+
+  .cpu-bus {
+    height: 8px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent2), var(--accent), var(--accent3));
+    opacity: 0.5;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cpu-bus::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    animation: busFlow 1.8s ease-in-out infinite;
+  }
+
+  @keyframes busFlow {
+    to { left: 160%; }
+  }
+
+  /* Welcome screen */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 60vh;
+    max-width: 520px;
+  }
+
+  .welcome h2 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+
+  .welcome p {
+    font-size: 15px;
+    color: var(--muted);
+    line-height: 1.65;
+    margin-bottom: 24px;
+  }
+
+  .welcome-hint {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  .pulse-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent);
+    animation: pulse 1.4s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+
+  @keyframes pulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.4); opacity: 0.6; }
+  }
+
+  /* Scrollbar */
+  .flow-col::-webkit-scrollbar { width: 4px; }
+  .flow-col::-webkit-scrollbar-track { background: transparent; }
+  .flow-col::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Transistor SVG demo */
+  .transistor-demo { display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .layout { flex-direction: column; }
+    .flow-col { width: 100%; min-width: 0; position: static; height: auto; }
+    .detail-col { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <!-- LEFT: Flow -->
+  <aside class="flow-col">
+    <div class="flow-header">
+      <h1>Arquitectura</h1>
+      <p>Haz clic en cada nivel para explorar cómo se construye una computadora desde cero.</p>
+    </div>
+
+    <div class="flow-nodes" id="flowNodes">
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="transistor" onclick="show('transistor',this)">
+          <div class="node-level">Nivel 01</div>
+          <div class="node-name">Transistores <span class="tag">Base física</span></div>
+          <div class="node-sub">Interruptores electrónicos de silicio</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="gates" onclick="show('gates',this)">
+          <div class="node-level">Nivel 02</div>
+          <div class="node-name">Compuertas lógicas <span class="tag">Lógica booleana</span></div>
+          <div class="node-sub">AND, OR, NOT, NAND, NOR, XOR</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="adders" onclick="show('adders',this)">
+          <div class="node-level">Nivel 03</div>
+          <div class="node-name">Sumadores / MUX <span class="tag">Aritmética</span></div>
+          <div class="node-sub">Half adder, full adder, multiplexores</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="alu" onclick="show('alu',this)">
+          <div class="node-level">Nivel 04</div>
+          <div class="node-name">ALU <span class="tag">Cálculo</span></div>
+          <div class="node-sub">Arithmetic Logic Unit</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="registers" onclick="show('registers',this)">
+          <div class="node-level">Nivel 05</div>
+          <div class="node-name">Registros <span class="tag">Almacenamiento rápido</span></div>
+          <div class="node-sub">Flip-flops y memoria de acceso inmediato</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="memory" onclick="show('memory',this)">
+          <div class="node-level">Nivel 06</div>
+          <div class="node-name">Memoria <span class="tag">RAM / Caché</span></div>
+          <div class="node-sub">Almacenamiento de datos e instrucciones</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="controlunit" onclick="show('controlunit',this)">
+          <div class="node-level">Nivel 07</div>
+          <div class="node-name">Unidad de Control <span class="tag">Dirección</span></div>
+          <div class="node-sub">Fetch → Decode → Execute</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="cpu" onclick="show('cpu',this)">
+          <div class="node-level">Nivel 08</div>
+          <div class="node-name">CPU <span class="tag">Procesador</span></div>
+          <div class="node-sub">ALU + Registros + Unidad de Control</div>
+        </button>
+      </div>
+
+      <div class="flow-item">
+        <div class="connector"><div class="connector-dot"></div></div>
+      </div>
+
+      <div class="flow-item">
+        <button class="node-btn" data-id="computer" onclick="show('computer',this)">
+          <div class="node-level">Nivel 09</div>
+          <div class="node-name">Computadora <span class="tag">Sistema completo</span></div>
+          <div class="node-sub">CPU + Memoria + E/S + Software</div>
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- RIGHT: Detail -->
+  <main class="detail-col">
+
+    <!-- Welcome -->
+    <div class="welcome" id="welcome">
+      <h2>¿Cómo funciona<br>una computadora?</h2>
+      <p>Todo parte de un simple interruptor eléctrico. Selecciona cualquier nivel del panel izquierdo para explorar cómo cada capa de abstracción construye la siguiente, desde un transistor hasta una computadora completa.</p>
+      <div class="welcome-hint">
+        <div class="pulse-dot"></div>
+        <span>Selecciona un nivel del panel izquierdo para comenzar</span>
+      </div>
+    </div>
+
+    <!-- ═══════════ TRANSISTORES ═══════════ -->
+    <div class="detail-panel" id="panel-transistor">
+      <div class="detail-badge">Nivel 01 · Base física</div>
+      <div class="detail-title">Transistores</div>
+      <div class="detail-subtitle">Un transistor es un interruptor electrónico microscópico hecho de silicio. Puede estar encendido (1) o apagado (0). Los procesadores modernos contienen miles de millones de ellos.</div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">⚡</div>
+          <div class="concept-title">Efecto de campo (FET)</div>
+          <div class="concept-desc">Una tensión en la compuerta controla el flujo de corriente entre fuente y drenaje.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔲</div>
+          <div class="concept-title">MOSFET</div>
+          <div class="concept-desc">El tipo más común hoy. Extremadamente pequeño — actualmente ~3-4 nm en producción.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔢</div>
+          <div class="concept-title">Binario</div>
+          <div class="concept-desc">0 V ≈ "0", 1.8–3.3 V ≈ "1". Todo el cómputo se reduce a este hecho.</div>
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Simulación interactiva de transistor MOSFET</div>
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div>
+            <div style="margin-bottom:12px;font-size:13px;color:var(--muted)">Voltaje de compuerta (Gate):</div>
+            <div style="display:flex;gap:10px">
+              <button class="gate-tab active" id="t-off" onclick="setTransistor(0)">0 V (apagado)</button>
+              <button class="gate-tab" id="t-on" onclick="setTransistor(1)">1.8 V (encendido)</button>
+            </div>
+          </div>
+          <svg width="240" height="140" viewBox="0 0 240 140" id="transistor-svg">
+            <!-- Source -->
+            <text x="8" y="55" fill="#64748b" font-size="11" font-family="Space Mono">Fuente</text>
+            <line x1="8" y1="70" x2="70" y2="70" stroke="#10b981" stroke-width="2.5"/>
+            <!-- Gate -->
+            <text x="105" y="14" fill="#64748b" font-size="11" font-family="Space Mono" text-anchor="middle">Compuerta</text>
+            <line x1="105" y1="20" x2="105" y2="50" stroke="#7c3aed" stroke-width="2.5"/>
+            <!-- Body -->
+            <rect x="70" y="50" width="70" height="60" rx="6" fill="#161b26" stroke="#1e2535" stroke-width="1.5"/>
+            <!-- Channel -->
+            <rect id="channel" x="80" y="75" width="50" height="10" rx="4" fill="#1e2535" transition="fill 0.3s"/>
+            <!-- Drain -->
+            <text x="232" y="55" fill="#64748b" font-size="11" font-family="Space Mono" text-anchor="end">Drenaje</text>
+            <line id="drain-line" x1="140" y1="70" x2="232" y2="70" stroke="#64748b" stroke-width="2.5" stroke-dasharray="6,4"/>
+            <!-- Labels -->
+            <text id="state-label" x="105" y="130" fill="#64748b" font-size="12" font-family="Space Mono" text-anchor="middle">ABIERTO — sin corriente</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Transistores → Compuertas: un NOT requiere 2 MOSFETs</div>
+        <div class="build-layers">
+          <div class="build-row"><span class="build-row-label">1 NOT gate</span><div class="build-bar"><div class="build-fill" style="width:0.0002%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">2 transistores</span></div>
+          <div class="build-row"><span class="build-row-label">1 NAND gate</span><div class="build-bar"><div class="build-fill" style="width:0.0004%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">4 transistores</span></div>
+          <div class="build-row"><span class="build-row-label">1 flip-flop</span><div class="build-bar"><div class="build-fill" style="width:0.002%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">~20 transistores</span></div>
+          <div class="build-row"><span class="build-row-label">1 ALU (8 bit)</span><div class="build-bar"><div class="build-fill" style="width:0.02%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">~1,000 transistores</span></div>
+          <div class="build-row"><span class="build-row-label">Apple M4</span><div class="build-bar"><div class="build-fill" style="width:100%"></div></div><span style="font-size:11px;color:var(--accent);font-family:Space Mono">28,000 millones</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ COMPUERTAS ═══════════ -->
+    <div class="detail-panel" id="panel-gates">
+      <div class="detail-badge">Nivel 02 · Lógica booleana</div>
+      <div class="detail-title">Compuertas Lógicas</div>
+      <div class="detail-subtitle">Al combinar transistores obtenemos compuertas: circuitos que implementan operaciones booleanas. Son los átomos de toda la lógica digital.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Selecciona una compuerta y cambia las entradas</div>
+        <div class="gate-tabs" id="gateTabs">
+          <button class="gate-tab active" onclick="selectGate('AND',this)">AND</button>
+          <button class="gate-tab" onclick="selectGate('OR',this)">OR</button>
+          <button class="gate-tab" onclick="selectGate('NOT',this)">NOT</button>
+          <button class="gate-tab" onclick="selectGate('NAND',this)">NAND</button>
+          <button class="gate-tab" onclick="selectGate('NOR',this)">NOR</button>
+          <button class="gate-tab" onclick="selectGate('XOR',this)">XOR</button>
+        </div>
+
+        <div class="interactive-row">
+          <span style="font-size:12px;color:var(--muted)">A =</span>
+          <div class="bit-box off" id="gA" onclick="toggleBit('gA')">0</div>
+          <span style="font-size:12px;color:var(--muted)" id="bLabel">AND</span>
+          <div class="bit-box off" id="gB" onclick="toggleBit('gB')">0</div>
+          <span style="font-size:18px;color:var(--muted)">=</span>
+          <div class="result-box" id="gOut">0</div>
+        </div>
+
+        <div id="gateDesc" style="margin-top:12px;font-size:13px;color:var(--muted);line-height:1.6"></div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Tabla de verdad — compuerta activa</div>
+        <div id="truthTableWrap"></div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">🔗</div>
+          <div class="concept-title">Universalidad NAND</div>
+          <div class="concept-desc">Con solo compuertas NAND se puede construir cualquier otra función lógica.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📐</div>
+          <div class="concept-title">Álgebra de Boole</div>
+          <div class="concept-desc">Las leyes de De Morgan y la distribución permiten simplificar circuitos.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">⏱️</div>
+          <div class="concept-title">Retardo de propagación</div>
+          <div class="concept-desc">Cada compuerta tiene un retardo mínimo (~ps). Limita la velocidad del reloj.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ SUMADORES ═══════════ -->
+    <div class="detail-panel" id="panel-adders">
+      <div class="detail-badge">Nivel 03 · Aritmética</div>
+      <div class="detail-title">Sumadores y Multiplexores</div>
+      <div class="detail-subtitle">Con compuertas XOR y AND construimos sumadores. El half adder suma dos bits; el full adder incluye el acarreo (carry). Los multiplexores seleccionan entre entradas según una señal de control.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Half Adder interactivo — suma dos bits</div>
+        <div class="interactive-row">
+          <span style="font-size:13px;color:var(--muted)">A =</span>
+          <div class="bit-box off" id="haA" onclick="toggleBit('haA')">0</div>
+          <span style="font-size:13px;color:var(--muted)">+</span>
+          <div class="bit-box off" id="haB" onclick="toggleBit('haB')">0</div>
+        </div>
+        <div class="interactive-row" style="margin-top:8px">
+          <span style="font-size:12px;color:var(--muted);width:60px">Suma (S):</span>
+          <div class="result-box" id="haSum">0</div>
+          <span style="font-size:12px;color:var(--muted);margin-left:16px;width:80px">Acarreo (C):</span>
+          <div class="result-box" id="haCarry" style="border-color:var(--accent2);background:rgba(124,58,237,0.08);color:var(--accent2)">0</div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:var(--muted);font-family:Space Mono">
+          S = A XOR B &nbsp;|&nbsp; C = A AND B
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Multiplexor 2:1 — selecciona una entrada</div>
+        <div class="interactive-row">
+          <span style="font-size:12px;color:var(--muted)">D0 =</span>
+          <div class="bit-box off" id="mxD0" onclick="toggleBit('mxD0')">0</div>
+          <span style="font-size:12px;color:var(--muted)">D1 =</span>
+          <div class="bit-box off" id="mxD1" onclick="toggleBit('mxD1')">0</div>
+          <span style="font-size:12px;color:var(--muted)">SEL =</span>
+          <div class="bit-box off" id="mxS" onclick="toggleBit('mxS')">0</div>
+          <span style="font-size:18px;color:var(--muted)">=</span>
+          <div class="result-box" id="mxOut">0</div>
+        </div>
+        <div id="mxDesc" style="margin-top:10px;font-size:12px;color:var(--muted);font-family:Space Mono"></div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">➕</div>
+          <div class="concept-title">Full Adder</div>
+          <div class="concept-desc">Encadena half adders con acarreo de entrada para sumar números de N bits.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔀</div>
+          <div class="concept-title">MUX como bus</div>
+          <div class="concept-desc">Los multiplexores 8:1 o 16:1 conectan múltiples fuentes a un bus de datos.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ ALU ═══════════ -->
+    <div class="detail-panel" id="panel-alu">
+      <div class="detail-badge">Nivel 04 · Cálculo</div>
+      <div class="detail-title">Unidad Aritmético-Lógica (ALU)</div>
+      <div class="detail-subtitle">La ALU ejecuta todas las operaciones aritméticas (suma, resta) y lógicas (AND, OR) sobre los datos. Es el "motor de cálculo" del procesador.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// ALU de 8 bits — selecciona operación e introduce valores</div>
+        <div class="alu-op-tabs" id="aluTabs">
+          <button class="gate-tab active" onclick="setAluOp('ADD',this)">ADD</button>
+          <button class="gate-tab" onclick="setAluOp('SUB',this)">SUB</button>
+          <button class="gate-tab" onclick="setAluOp('AND',this)">AND</button>
+          <button class="gate-tab" onclick="setAluOp('OR',this)">OR</button>
+          <button class="gate-tab" onclick="setAluOp('XOR',this)">XOR</button>
+          <button class="gate-tab" onclick="setAluOp('NOT',this)">NOT A</button>
+          <button class="gate-tab" onclick="setAluOp('SHL',this)">SHL</button>
+          <button class="gate-tab" onclick="setAluOp('SHR',this)">SHR</button>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px">
+          <div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:Space Mono">Operando A (0-255)</div>
+            <input type="number" id="aluA" value="42" min="0" max="255" oninput="calcAlu()" style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:Space Mono;font-size:14px">
+          </div>
+          <div id="aluBWrap">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:Space Mono">Operando B (0-255)</div>
+            <input type="number" id="aluB" value="15" min="0" max="255" oninput="calcAlu()" style="width:80px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:Space Mono;font-size:14px">
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:4px;font-family:Space Mono">Resultado</div>
+            <div id="aluResult" style="font-family:Space Mono;font-size:22px;font-weight:700;color:var(--accent);min-width:60px">57</div>
+          </div>
+        </div>
+
+        <div id="aluBinRow" style="font-family:Space Mono;font-size:11px;color:var(--muted);line-height:1.8"></div>
+        <div id="aluFlags" style="margin-top:10px;display:flex;gap:12px;flex-wrap:wrap"></div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">🚦</div>
+          <div class="concept-title">Flags de estado</div>
+          <div class="concept-desc">Zero (Z), Carry (C), Overflow (V), Negative (N) — el resultado afecta los bits de condición.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">↔️</div>
+          <div class="concept-title">Complemento a dos</div>
+          <div class="concept-desc">La resta se implementa sumando el complemento a dos del sustraendo.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">⚙️</div>
+          <div class="concept-title">Opcode</div>
+          <div class="concept-desc">La señal de control selecciona qué operación realiza la ALU via un MUX interno.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ REGISTROS ═══════════ -->
+    <div class="detail-panel" id="panel-registers">
+      <div class="detail-badge">Nivel 05 · Almacenamiento rápido</div>
+      <div class="detail-title">Registros</div>
+      <div class="detail-subtitle">Los registros son celdas de memoria ultra-rápidas dentro del procesador. Construidas con flip-flops, guardan operandos y resultados temporales. Acceso en un solo ciclo de reloj.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Banco de registros de 8 bits (haz clic para escribir un valor)</div>
+        <div class="reg-grid" id="regGrid"></div>
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+          <select id="regSel" style="background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:Space Mono;font-size:12px">
+            <option>R0</option><option>R1</option><option>R2</option><option>R3</option>
+            <option>R4</option><option>R5</option><option>R6</option><option>R7</option>
+          </select>
+          <input type="number" id="regVal" placeholder="valor 0-255" min="0" max="255" style="width:130px;background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-family:Space Mono;font-size:12px">
+          <button class="gate-tab" onclick="writeReg()" style="padding:7px 16px">Escribir</button>
+          <button class="gate-tab" onclick="resetRegs()" style="padding:7px 16px">Resetear</button>
+        </div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">⚡</div>
+          <div class="concept-title">Velocidad</div>
+          <div class="concept-desc">~1 ciclo (< 1ns). Los datos en registros no viajan al bus de memoria.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📌</div>
+          <div class="concept-title">PC y SP</div>
+          <div class="concept-desc">Program Counter y Stack Pointer son registros especiales con funciones fijas en la arquitectura.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔒</div>
+          <div class="concept-title">Flip-Flop D</div>
+          <div class="concept-desc">Un bit de registro es un flip-flop D: captura el dato en el flanco del reloj y lo retiene.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ MEMORIA ═══════════ -->
+    <div class="detail-panel" id="panel-memory">
+      <div class="detail-badge">Nivel 06 · Almacenamiento</div>
+      <div class="detail-title">Memoria</div>
+      <div class="detail-subtitle">La memoria almacena instrucciones y datos. Existen múltiples niveles con diferente velocidad y capacidad: caché L1/L2/L3 dentro del chip, RAM principal, y almacenamiento masivo.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Jerarquía de memoria — animación de acceso</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px" id="memHierarchy">
+          <div class="build-row"><span class="build-row-label">L1 Caché</span><div class="build-bar"><div class="build-fill" style="width:100%"></div></div><span style="font-size:11px;color:var(--accent);font-family:Space Mono">~1ns · 32 KB</span></div>
+          <div class="build-row"><span class="build-row-label">L2 Caché</span><div class="build-bar"><div class="build-fill" style="width:70%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">~4ns · 256 KB</span></div>
+          <div class="build-row"><span class="build-row-label">L3 Caché</span><div class="build-bar"><div class="build-fill" style="width:40%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">~20ns · 8 MB</span></div>
+          <div class="build-row"><span class="build-row-label">RAM (DRAM)</span><div class="build-bar"><div class="build-fill" style="width:15%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">~100ns · 16 GB</span></div>
+          <div class="build-row"><span class="build-row-label">SSD NVMe</span><div class="build-bar"><div class="build-fill" style="width:3%"></div></div><span style="font-size:11px;color:var(--muted);font-family:Space Mono">~100µs · 1 TB</span></div>
+        </div>
+        <div style="font-size:11px;color:var(--muted)">↑ Más rápido y caro · ↓ Más lento y barato</div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Simulación de lectura de memoria — haz clic en una celda</div>
+        <div class="mem-grid" id="memGrid"></div>
+        <div id="memInfo" style="margin-top:12px;font-size:12px;color:var(--muted);font-family:Space Mono;height:20px"></div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">🎯</div>
+          <div class="concept-title">Localidad de referencia</div>
+          <div class="concept-desc">Los programas tienden a acceder a datos cercanos en el tiempo y el espacio — base del caché.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📍</div>
+          <div class="concept-title">Dirección de memoria</div>
+          <div class="concept-desc">Cada byte tiene una dirección única. En 64 bits hay hasta 2⁶⁴ ≈ 18 quintillones de bytes.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ UNIDAD DE CONTROL ═══════════ -->
+    <div class="detail-panel" id="panel-controlunit">
+      <div class="detail-badge">Nivel 07 · Dirección</div>
+      <div class="detail-title">Unidad de Control</div>
+      <div class="detail-subtitle">La UC lee instrucciones de memoria, las decodifica y genera las señales de control que coordinan ALU, registros y memoria. Opera en ciclos repetitivos: Fetch → Decode → Execute.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Ciclo de instrucción — haz clic en los pasos</div>
+        <div style="display:flex;gap:0;margin-bottom:20px;flex-wrap:wrap" id="cycleSteps">
+          <div class="cycle-step" data-step="0" onclick="showCycle(0)" style="cursor:pointer;flex:1;min-width:100px;padding:14px;background:rgba(0,212,255,0.08);border:1px solid var(--accent);border-radius:8px 0 0 8px;text-align:center">
+            <div style="font-family:Space Mono;font-size:10px;color:var(--accent);letter-spacing:0.08em">01</div>
+            <div style="font-size:13px;font-weight:600;margin-top:4px">FETCH</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Leer instrucción</div>
+          </div>
+          <div class="cycle-step" data-step="1" onclick="showCycle(1)" style="cursor:pointer;flex:1;min-width:100px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-left:none;text-align:center">
+            <div style="font-family:Space Mono;font-size:10px;color:var(--muted);letter-spacing:0.08em">02</div>
+            <div style="font-size:13px;font-weight:600;margin-top:4px">DECODE</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Interpretar opcode</div>
+          </div>
+          <div class="cycle-step" data-step="2" onclick="showCycle(2)" style="cursor:pointer;flex:1;min-width:100px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-left:none;text-align:center">
+            <div style="font-family:Space Mono;font-size:10px;color:var(--muted);letter-spacing:0.08em">03</div>
+            <div style="font-size:13px;font-weight:600;margin-top:4px">EXECUTE</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Operar en la ALU</div>
+          </div>
+          <div class="cycle-step" data-step="3" onclick="showCycle(3)" style="cursor:pointer;flex:1;min-width:100px;padding:14px;background:var(--bg3);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;text-align:center">
+            <div style="font-family:Space Mono;font-size:10px;color:var(--muted);letter-spacing:0.08em">04</div>
+            <div style="font-size:13px;font-weight:600;margin-top:4px">WRITE BACK</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:4px">Guardar resultado</div>
+          </div>
+        </div>
+        <div id="cycleDesc" style="font-size:13px;color:var(--muted);line-height:1.7;padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:8px">
+          El Program Counter (PC) apunta a la siguiente instrucción. La UC la copia en el Instruction Register (IR) y avanza el PC.
+        </div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">⏰</div>
+          <div class="concept-title">Reloj (clock)</div>
+          <div class="concept-desc">Sincroniza todo. A 3 GHz hay 3×10⁹ ciclos por segundo. Cada instrucción puede tomar 1-20+ ciclos.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔄</div>
+          <div class="concept-title">Pipeline</div>
+          <div class="concept-desc">Superpone las fases de varias instrucciones para aumentar el throughput sin subir la frecuencia.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📝</div>
+          <div class="concept-title">ISA</div>
+          <div class="concept-desc">La Instruction Set Architecture define el "idioma" que entiende la UC: x86, ARM, RISC-V…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ CPU ═══════════ -->
+    <div class="detail-panel" id="panel-cpu">
+      <div class="detail-badge">Nivel 08 · Procesador</div>
+      <div class="detail-title">CPU</div>
+      <div class="detail-subtitle">La CPU integra la ALU, los registros y la Unidad de Control en un solo chip. Un bus de datos interno conecta todos los componentes y los sincroniza con el reloj del sistema.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Arquitectura interna de la CPU</div>
+        <div class="cpu-box">
+          <div style="font-family:Space Mono;font-size:10px;color:var(--muted);letter-spacing:0.1em;margin-bottom:4px">PROCESADOR (CPU)</div>
+          <div class="cpu-section">
+            <div class="cpu-unit cu-u">Unidad de Control<small>Fetch · Decode · Execute</small></div>
+          </div>
+          <div class="cpu-bus" title="Bus de datos interno"></div>
+          <div class="cpu-section" style="gap:10px">
+            <div class="cpu-unit alu-u">ALU<small>Aritmética y Lógica</small></div>
+            <div class="cpu-unit reg-u">Registros<small>R0-R15, PC, SP</small></div>
+          </div>
+          <div class="cpu-bus"></div>
+          <div style="border:1px dashed var(--border);border-radius:8px;padding:10px;text-align:center;font-size:12px;color:var(--muted)">
+            Caché L1 / L2 &nbsp;·&nbsp; Bus de sistema → RAM → Periféricos
+          </div>
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Ejecutando ADD R0, R1, R2 (R0 = R1 + R2)</div>
+        <div id="cpuSimWrap">
+          <div id="cpuSimLog" style="font-family:Space Mono;font-size:11px;color:var(--muted);line-height:2;border:1px solid var(--border);border-radius:6px;padding:12px;min-height:80px;background:var(--bg)"></div>
+          <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+            <button class="gate-tab" onclick="cpuStep()" style="padding:7px 20px">Siguiente paso ▶</button>
+            <button class="gate-tab" onclick="cpuReset()" style="padding:7px 16px">Reiniciar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">🧠</div>
+          <div class="concept-title">Superescalaridad</div>
+          <div class="concept-desc">Los CPUs modernos ejecutan múltiples instrucciones por ciclo usando varias ALUs en paralelo.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔮</div>
+          <div class="concept-title">Predicción de saltos</div>
+          <div class="concept-desc">La CPU predice el resultado de condicionales para no detener el pipeline.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🌡️</div>
+          <div class="concept-title">Disipación de calor</div>
+          <div class="concept-desc">Miles de millones de transistores conmutando generan calor. El TDP define la disipación de un chip.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ COMPUTADORA ═══════════ -->
+    <div class="detail-panel" id="panel-computer">
+      <div class="detail-badge">Nivel 09 · Sistema completo</div>
+      <div class="detail-title">Computadora</div>
+      <div class="detail-subtitle">Una computadora es el sistema completo: CPU + Memoria principal + Almacenamiento + Entrada/Salida + Software. Todo construido desde el transistor, capa a capa.</div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-label">// Capas de abstracción completas</div>
+        <div style="display:flex;flex-direction:column;gap:6px" id="stackViz">
+        </div>
+      </div>
+
+      <div class="concepts">
+        <div class="concept-card">
+          <div class="concept-icon">🖥️</div>
+          <div class="concept-title">Von Neumann</div>
+          <div class="concept-desc">Arquitectura que unifica datos e instrucciones en la misma memoria. Base de casi todas las computadoras modernas.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">🔌</div>
+          <div class="concept-title">Buses del sistema</div>
+          <div class="concept-desc">Address bus, Data bus y Control bus conectan CPU, memoria y periféricos en un canal compartido.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">💾</div>
+          <div class="concept-title">Sistema Operativo</div>
+          <div class="concept-desc">El SO abstrae el hardware y arbitra los recursos (CPU, memoria, I/O) entre los procesos.</div>
+        </div>
+        <div class="concept-card">
+          <div class="concept-icon">📱</div>
+          <div class="concept-title">Aplicaciones</div>
+          <div class="concept-desc">El software de alto nivel se compila hasta instrucciones de máquina que la UC ejecuta ciclo a ciclo.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;padding:20px;background:var(--bg3);border:1px solid var(--border);border-radius:12px;">
+        <div style="font-family:Space Mono;font-size:11px;color:var(--accent);margin-bottom:12px;letter-spacing:0.1em">// RESUMEN DEL VIAJE</div>
+        <div style="font-size:13px;color:var(--muted);line-height:1.9">
+          2 transistores → NOT &nbsp;·&nbsp; 4 → NAND &nbsp;·&nbsp; ~20 → flip-flop &nbsp;·&nbsp; ~1K → ALU &nbsp;·&nbsp;
+          ~10K → UC &nbsp;·&nbsp; ~1M → CPU simple &nbsp;·&nbsp; 28,000M → Apple M4
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ── State ──────────────────────────────
+let currentGate = 'AND';
+let aluOp = 'ADD';
+let cpuStepIdx = 0;
+
+// ── Show panel ─────────────────────────
+function show(id, btn) {
+  document.getElementById('welcome').style.display = 'none';
+  document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.node-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('visible');
+  btn.classList.add('active');
+  // Init content
+  if (id==='gates')   { selectGate(currentGate, document.querySelector('#gateTabs .active')||document.querySelector('#gateTabs .gate-tab')); }
+  if (id==='adders')  { updateHA(); updateMX(); }
+  if (id==='alu')     { calcAlu(); }
+  if (id==='registers') initRegs();
+  if (id==='memory')  initMem();
+  if (id==='cpu')     cpuReset();
+  if (id==='computer') initStack();
+}
+
+// ── Transistor ─────────────────────────
+function setTransistor(on) {
+  const channel = document.getElementById('channel');
+  const drain   = document.getElementById('drain-line');
+  const label   = document.getElementById('state-label');
+  const tOn     = document.getElementById('t-on');
+  const tOff    = document.getElementById('t-off');
+  if (on) {
+    channel.setAttribute('fill','#10b981');
+    drain.setAttribute('stroke','#10b981');
+    drain.setAttribute('stroke-dasharray','0');
+    label.setAttribute('fill','#10b981');
+    label.textContent = 'CERRADO — corriente fluye';
+    tOn.classList.add('active'); tOff.classList.remove('active');
+  } else {
+    channel.setAttribute('fill','#1e2535');
+    drain.setAttribute('stroke','#64748b');
+    drain.setAttribute('stroke-dasharray','6,4');
+    label.setAttribute('fill','#64748b');
+    label.textContent = 'ABIERTO — sin corriente';
+    tOff.classList.add('active'); tOn.classList.remove('active');
+  }
+}
+
+// ── Gates ──────────────────────────────
+const gateInfo = {
+  AND:  { desc:'Salida = 1 solo si AMBAS entradas son 1.', fn:(a,b)=>a&b, unary:false },
+  OR:   { desc:'Salida = 1 si AL MENOS UNA entrada es 1.', fn:(a,b)=>a|b, unary:false },
+  NOT:  { desc:'Salida = inverso de A. Solo usa una entrada.', fn:(a,b)=>a^1, unary:true },
+  NAND: { desc:'NAND = NOT AND. Salida = 0 solo si ambas son 1.', fn:(a,b)=>(a&b)^1, unary:false },
+  NOR:  { desc:'NOR = NOT OR. Salida = 1 solo si ambas son 0.', fn:(a,b)=>(a|b)^1, unary:false },
+  XOR:  { desc:'XOR = OR exclusivo. Salida = 1 si las entradas son DISTINTAS.', fn:(a,b)=>a^b, unary:false }
+};
+
+function selectGate(g, btn) {
+  currentGate = g;
+  document.querySelectorAll('#gateTabs .gate-tab').forEach(t=>t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('bLabel').textContent = g;
+  const gB = document.getElementById('gB');
+  const info = gateInfo[g];
+  gB.style.display = info.unary ? 'none' : '';
+  document.getElementById('gateDesc').textContent = info.desc;
+  updateGate();
+  renderTruth();
+}
+
+function toggleBit(id) {
+  const el = document.getElementById(id);
+  const val = el.textContent==='0';
+  el.textContent = val?'1':'0';
+  el.className = 'bit-box '+(val?'on':'off');
+  if (['gA','gB'].includes(id)) updateGate();
+  if (['haA','haB'].includes(id)) updateHA();
+  if (['mxD0','mxD1','mxS'].includes(id)) updateMX();
+}
+
+function getBit(id) { return document.getElementById(id).textContent==='1'?1:0; }
+
+function updateGate() {
+  const a = getBit('gA'), b = getBit('gB');
+  const res = gateInfo[currentGate].fn(a,b);
+  const el = document.getElementById('gOut');
+  el.textContent = res;
+  el.style.borderColor = res ? 'var(--accent3)' : 'var(--accent)';
+  el.style.color = res ? 'var(--accent3)' : 'var(--accent)';
+  el.style.background = res ? 'rgba(16,185,129,0.1)' : 'rgba(0,212,255,0.08)';
+}
+
+function renderTruth() {
+  const info = gateInfo[currentGate];
+  const wrap = document.getElementById('truthTableWrap');
+  let rows = '';
+  if (info.unary) {
+    rows = [[0],[1]].map(([a])=>`<tr><td class="${a?'hi':'lo'}">${a}</td><td class="${info.fn(a,0)?'hi':'lo'}">${info.fn(a,0)}</td></tr>`).join('');
+    wrap.innerHTML = `<table class="truth"><thead><tr><th>A</th><th>${currentGate}(A)</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } else {
+    rows = [[0,0],[0,1],[1,0],[1,1]].map(([a,b])=>`<tr><td class="${a?'hi':'lo'}">${a}</td><td class="${b?'hi':'lo'}">${b}</td><td class="${info.fn(a,b)?'hi':'lo'}">${info.fn(a,b)}</td></tr>`).join('');
+    wrap.innerHTML = `<table class="truth"><thead><tr><th>A</th><th>B</th><th>${currentGate}(A,B)</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+}
+
+// ── Adders ─────────────────────────────
+function updateHA() {
+  const a=getBit('haA'), b=getBit('haB');
+  const s=a^b, c=a&b;
+  setResult('haSum',s); setResult('haCarry',c,'var(--accent2)','rgba(124,58,237,0.08)');
+}
+
+function setResult(id,v,col,bg) {
+  const el=document.getElementById(id);
+  el.textContent=v;
+  if (col) { el.style.borderColor=col; el.style.color=col; el.style.background=bg; }
+}
+
+function updateMX() {
+  const d0=getBit('mxD0'), d1=getBit('mxD1'), s=getBit('mxS');
+  const out = s?d1:d0;
+  const el=document.getElementById('mxOut');
+  el.textContent=out;
+  document.getElementById('mxDesc').textContent =
+    `SEL=${s} → salida = D${s} = ${out}`;
+}
+
+// ── ALU ────────────────────────────────
+function setAluOp(op, btn) {
+  aluOp = op;
+  document.querySelectorAll('#aluTabs .gate-tab').forEach(t=>t.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('aluBWrap').style.display = (op==='NOT'||op==='SHL'||op==='SHR') ? 'none':'';
+  calcAlu();
+}
+
+function calcAlu() {
+  const a = parseInt(document.getElementById('aluA').value)||0;
+  const b = parseInt(document.getElementById('aluB').value)||0;
+  let res;
+  switch(aluOp) {
+    case 'ADD': res=a+b; break;
+    case 'SUB': res=a-b; break;
+    case 'AND': res=a&b; break;
+    case 'OR':  res=a|b; break;
+    case 'XOR': res=a^b; break;
+    case 'NOT': res=(~a)&0xFF; break;
+    case 'SHL': res=(a<<1)&0xFF; break;
+    case 'SHR': res=(a>>1)&0xFF; break;
+  }
+  const display = res;
+  document.getElementById('aluResult').textContent = display;
+  const bin = n => ('00000000'+(n&0xFF).toString(2)).slice(-8);
+  let binRow = `A = ${bin(a)} (${a})`;
+  if (!['NOT','SHL','SHR'].includes(aluOp)) binRow += `\nB = ${bin(b)} (${b})`;
+  binRow += `\n${aluOp} = ${bin(res)} (${display})`;
+  document.getElementById('aluBinRow').textContent = binRow;
+  const flags = [];
+  if ((res&0xFF)===0) flags.push('<span style="color:var(--accent);font-family:Space Mono;font-size:11px;padding:3px 8px;border:1px solid rgba(0,212,255,0.3);border-radius:4px;background:rgba(0,212,255,0.06)">Z=1 Zero</span>');
+  if (res&0x100)     flags.push('<span style="color:var(--accent2);font-family:Space Mono;font-size:11px;padding:3px 8px;border:1px solid rgba(124,58,237,0.3);border-radius:4px;background:rgba(124,58,237,0.06)">C=1 Carry</span>');
+  if (res<0)         flags.push('<span style="color:#f59e0b;font-family:Space Mono;font-size:11px;padding:3px 8px;border:1px solid rgba(245,158,11,0.3);border-radius:4px;background:rgba(245,158,11,0.06)">N=1 Negativo</span>');
+  document.getElementById('aluFlags').innerHTML = flags.join(' ');
+}
+
+// ── Registers ──────────────────────────
+const regData = {R0:'00000000',R1:'00000000',R2:'00000000',R3:'00000000',R4:'00000000',R5:'00000000',R6:'00000000',R7:'00000000'};
+const regNames = Object.keys(regData);
+
+function initRegs() { renderRegs(); }
+
+function renderRegs() {
+  const g = document.getElementById('regGrid');
+  g.innerHTML = regNames.map(n=>`
+    <div class="reg-cell ${regData[n]!=='00000000'?'active':''}" id="rc-${n}">
+      <div class="reg-name">${n}</div>
+      <div class="reg-val">${regData[n]}</div>
+    </div>`).join('');
+}
+
+function writeReg() {
+  const n = document.getElementById('regSel').value;
+  const v = Math.max(0,Math.min(255,parseInt(document.getElementById('regVal').value)||0));
+  regData[n] = ('00000000'+v.toString(2)).slice(-8);
+  renderRegs();
+}
+
+function resetRegs() {
+  regNames.forEach(n=>regData[n]='00000000');
+  renderRegs();
+}
+
+// ── Memory ─────────────────────────────
+const memData = [];
+function initMem() {
+  const g = document.getElementById('memGrid');
+  if (!memData.length) {
+    for (let i=0;i<32;i++) memData.push(Math.floor(Math.random()*256));
+  }
+  g.innerHTML = memData.map((v,i)=>`
+    <div class="mem-cell" id="mc-${i}" onclick="selectMem(${i})" style="cursor:pointer">
+      ${('00'+v.toString(16).toUpperCase()).slice(-2)}
+    </div>`).join('');
+}
+
+let lastMemSel = -1;
+function selectMem(i) {
+  if (lastMemSel>=0) {
+    document.getElementById('mc-'+lastMemSel).className='mem-cell';
+  }
+  lastMemSel = i;
+  const el = document.getElementById('mc-'+i);
+  el.className = 'mem-cell active';
+  document.getElementById('memInfo').textContent =
+    `Addr 0x${('0000'+i.toString(16).toUpperCase()).slice(-4)} → 0x${('00'+memData[i].toString(16).toUpperCase()).slice(-2)} = ${memData[i]} = ${('00000000'+memData[i].toString(2)).slice(-8)}b`;
+}
+
+// ── Control Unit cycle ──────────────────
+const cycleDescs = [
+  'FETCH: El Program Counter (PC) apunta a la dirección de memoria donde está la instrucción. La UC la copia en el Instruction Register (IR) y avanza el PC.',
+  'DECODE: El decodificador de instrucciones analiza el opcode del IR. Identifica la operación (ADD) y los registros operandos (R1, R2).',
+  'EXECUTE: La UC activa la ALU con la operación ADD. R1 y R2 son las entradas. La ALU calcula el resultado y activa los flags de estado.',
+  'WRITE BACK: El resultado de la ALU se escribe en el registro destino (R0). El ciclo termina y empieza de nuevo con la siguiente instrucción.'
+];
+
+function showCycle(i) {
+  document.querySelectorAll('.cycle-step').forEach((el,j)=>{
+    const isActive = j===i;
+    el.style.background = isActive ? 'rgba(0,212,255,0.08)' : 'var(--bg3)';
+    el.style.borderColor = isActive ? 'var(--accent)' : 'var(--border)';
+    el.querySelector('div').style.color = isActive ? 'var(--accent)' : 'var(--muted)';
+  });
+  document.getElementById('cycleDesc').textContent = cycleDescs[i];
+}
+
+// ── CPU step simulation ─────────────────
+const cpuSteps = [
+  '<span style="color:var(--accent)">PC=0x0000</span> → Fetch instrucción: <span style="color:var(--text)">ADD R0, R1, R2</span>',
+  'Decode: opcode=ADD | dst=R0 | src1=R1 | src2=R2',
+  'Read: <span style="color:var(--accent3)">R1=42</span>, <span style="color:var(--accent3)">R2=15</span> → enviar a ALU',
+  'ALU ejecuta ADD: 42 + 15 = <span style="color:var(--accent)">57</span>  · flags: Z=0 C=0 N=0',
+  'Write back: <span style="color:var(--accent)">R0 ← 57</span> · PC++ → próxima instrucción',
+  '<span style="color:var(--accent2)">Ciclo completo. R0=57. PC=0x0002</span>'
+];
+
+function cpuStep() {
+  if (cpuStepIdx < cpuSteps.length) {
+    const log = document.getElementById('cpuSimLog');
+    log.innerHTML += (cpuStepIdx===0?'':'\n') + cpuSteps[cpuStepIdx];
+    cpuStepIdx++;
+  }
+}
+
+function cpuReset() {
+  cpuStepIdx = 0;
+  document.getElementById('cpuSimLog').innerHTML = '<span style="color:var(--muted)">// Haz clic en "Siguiente paso" para ejecutar ADD R0, R1, R2</span>';
+}
+
+// ── Computer stack ──────────────────────
+const stackLayers = [
+  { label:'Aplicaciones', color:'var(--accent)', bg:'rgba(0,212,255,0.06)', desc:'Python, navegador, juego…' },
+  { label:'Sistema Operativo', color:'var(--accent2)', bg:'rgba(124,58,237,0.06)', desc:'Linux, Windows, macOS' },
+  { label:'ISA / Ensamblador', color:'#f59e0b', bg:'rgba(245,158,11,0.06)', desc:'x86, ARM, RISC-V' },
+  { label:'CPU (Control + ALU + Regs)', color:'var(--accent3)', bg:'rgba(16,185,129,0.06)', desc:'Procesador completo' },
+  { label:'Memoria (RAM + Caché)', color:'#64748b', bg:'rgba(100,116,139,0.06)', desc:'DRAM, SRAM' },
+  { label:'Compuertas Lógicas', color:'#a78bfa', bg:'rgba(167,139,250,0.06)', desc:'AND, OR, NOT…' },
+  { label:'Transistores', color:'#f87171', bg:'rgba(248,113,113,0.06)', desc:'Silicio · 3nm · miles de millones' },
+];
+
+function initStack() {
+  const wrap = document.getElementById('stackViz');
+  wrap.innerHTML = stackLayers.map((l,i)=>`
+    <div style="padding:10px 14px;background:${l.bg};border:1px solid ${l.color}33;border-radius:6px;display:flex;align-items:center;justify-content:space-between;animation:fadeIn 0.3s ease ${i*0.06}s both">
+      <span style="font-size:13px;font-weight:600;color:${l.color}">${l.label}</span>
+      <span style="font-size:11px;color:var(--muted);font-family:Space Mono">${l.desc}</span>
+    </div>`).join('');
+}
+
+// ── Init defaults ───────────────────────
+renderTruth();
+selectGate('AND', null);
+</script>
+</body>
+</html>
