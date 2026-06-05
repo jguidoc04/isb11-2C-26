@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arquitectura de Computadoras — Simulador Interactivo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0c0f;
+  --bg2: #111318;
+  --bg3: #1a1d24;
+  --border: #2a2e38;
+  --accent: #00e5ff;
+  --accent2: #ff6b35;
+  --accent3: #a855f7;
+  --green: #22c55e;
+  --yellow: #eab308;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --mono: 'Space Mono', monospace;
+  --sans: 'Syne', sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);overflow-x:hidden;}
+
+/* NAV */
+nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,12,15,.95);backdrop-filter:blur(12px);z-index:100;}
+.logo{font-family:var(--mono);font-size:.8rem;color:var(--accent);letter-spacing:.1em;}
+.tabs{display:flex;gap:.25rem;}
+.tab{padding:.45rem 1rem;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:var(--sans);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;letter-spacing:.05em;}
+.tab:hover{border-color:var(--accent);color:var(--accent);}
+.tab.active{background:var(--accent);color:#000;border-color:var(--accent);}
+
+/* HERO */
+.hero{padding:4rem 2rem 2rem;text-align:center;position:relative;}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 40% at 50% 0%, rgba(0,229,255,.08) 0%, transparent 70%);pointer-events:none;}
+.hero h1{font-size:clamp(2rem,5vw,3.5rem);font-weight:800;line-height:1.1;margin-bottom:.75rem;}
+.hero h1 span{color:var(--accent);}
+.hero p{color:var(--muted);font-size:.95rem;max-width:520px;margin:0 auto 2rem;}
+
+/* SECTIONS */
+.section{display:none;padding:1.5rem 2rem 3rem;max-width:1100px;margin:0 auto;}
+.section.active{display:block;animation:fadeIn .35s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.section-title{font-size:1.4rem;font-weight:800;margin-bottom:.4rem;}
+.section-title span{color:var(--accent);}
+.section-sub{color:var(--muted);font-size:.85rem;margin-bottom:2rem;font-family:var(--mono);}
+
+/* ARCH COMPARISON */
+.arch-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;}
+@media(max-width:700px){.arch-grid{grid-template-columns:1fr;}}
+.arch-card{border:1px solid var(--border);background:var(--bg2);padding:1.5rem;position:relative;overflow:hidden;}
+.arch-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.arch-card.neumann::before{background:var(--accent);}
+.arch-card.harvard::before{background:var(--accent2);}
+.arch-badge{font-family:var(--mono);font-size:.65rem;letter-spacing:.1em;padding:.25rem .6rem;border:1px solid;display:inline-block;margin-bottom:1rem;}
+.arch-card.neumann .arch-badge{color:var(--accent);border-color:var(--accent);}
+.arch-card.harvard .arch-badge{color:var(--accent2);border-color:var(--accent2);}
+.arch-card h3{font-size:1.1rem;font-weight:800;margin-bottom:.75rem;}
+.arch-diagram{margin:1rem 0;}
+
+/* SVG diagrams */
+.diag-svg{width:100%;max-width:380px;display:block;margin:0 auto;}
+
+/* BUS animation */
+.bus-packet{animation:busMove 2s linear infinite;}
+.bus-packet2{animation:busMove 2s linear infinite .5s;}
+.bus-packet3{animation:busMove 2s linear infinite 1s;}
+.bus-packet4{animation:busMove 2s linear infinite 1.5s;}
+@keyframes busMove{0%{transform:translateX(-40px);opacity:0}10%{opacity:1}80%{opacity:1}100%{transform:translateX(40px);opacity:0}}
+
+.data-bus-anim{animation:busData 1.8s linear infinite;}
+.inst-bus-anim{animation:busInst 1.8s linear infinite .6s;}
+@keyframes busData{0%{stroke-dashoffset:40}100%{stroke-dashoffset:0}}
+@keyframes busInst{0%{stroke-dashoffset:40}100%{stroke-dashoffset:0}}
+
+/* features list */
+.feat-list{list-style:none;display:flex;flex-direction:column;gap:.5rem;margin-top:1rem;}
+.feat-list li{display:flex;align-items:flex-start;gap:.5rem;font-size:.82rem;color:var(--muted);}
+.feat-list li::before{content:'▸';flex-shrink:0;margin-top:.05rem;}
+.arch-card.neumann .feat-list li::before{color:var(--accent);}
+.arch-card.harvard .feat-list li::before{color:var(--accent2);}
+.feat-list li strong{color:var(--text);}
+
+/* comparison table */
+.comp-table{width:100%;border-collapse:collapse;font-size:.82rem;font-family:var(--mono);margin-top:1.5rem;}
+.comp-table th{padding:.75rem 1rem;text-align:left;border-bottom:1px solid var(--border);color:var(--muted);font-size:.7rem;letter-spacing:.1em;}
+.comp-table td{padding:.7rem 1rem;border-bottom:1px solid var(--border);}
+.comp-table tr:last-child td{border:none;}
+.tag-n{color:var(--accent);font-size:.7rem;}
+.tag-h{color:var(--accent2);font-size:.7rem;}
+
+/* === UNIDADES === */
+.units-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;}
+.unit-card{border:1px solid var(--border);background:var(--bg2);padding:1.25rem;cursor:pointer;transition:all .25s;position:relative;}
+.unit-card:hover,.unit-card.active{border-color:var(--accent);background:var(--bg3);}
+.unit-card.active::after{content:'';position:absolute;inset:0;border:1px solid var(--accent);pointer-events:none;}
+.unit-icon{font-size:1.8rem;margin-bottom:.75rem;}
+.unit-card h4{font-size:.95rem;font-weight:800;margin-bottom:.35rem;}
+.unit-card p{font-size:.78rem;color:var(--muted);line-height:1.5;}
+.unit-detail{margin-top:1.5rem;padding:1.5rem;border:1px solid var(--accent);background:var(--bg2);display:none;animation:fadeIn .3s ease;}
+.unit-detail.show{display:block;}
+.unit-detail h3{font-size:1rem;font-weight:800;margin-bottom:1rem;color:var(--accent);}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
+@media(max-width:600px){.detail-grid{grid-template-columns:1fr;}}
+.detail-stat{background:var(--bg3);padding:1rem;border:1px solid var(--border);}
+.detail-stat .label{font-size:.65rem;font-family:var(--mono);color:var(--muted);letter-spacing:.08em;margin-bottom:.3rem;}
+.detail-stat .value{font-size:1rem;font-weight:800;}
+
+/* === CPU SIMULATOR === */
+.cpu-layout{display:grid;grid-template-columns:280px 1fr;gap:1.5rem;}
+@media(max-width:800px){.cpu-layout{grid-template-columns:1fr;}}
+.cpu-visual{background:var(--bg2);border:1px solid var(--border);padding:1.25rem;}
+.cpu-visual h4{font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.1em;margin-bottom:1rem;}
+.reg-row{display:flex;align-items:center;gap:.75rem;margin-bottom:.6rem;}
+.reg-label{font-family:var(--mono);font-size:.7rem;color:var(--muted);width:40px;flex-shrink:0;}
+.reg-bar{flex:1;height:28px;background:var(--bg3);border:1px solid var(--border);position:relative;overflow:hidden;}
+.reg-fill{height:100%;transition:width .4s ease;background:linear-gradient(90deg,var(--accent),rgba(0,229,255,.4));}
+.reg-val{font-family:var(--mono);font-size:.7rem;color:var(--accent);margin-left:.5rem;min-width:60px;}
+.cpu-controls{display:flex;flex-direction:column;gap:.75rem;}
+.cpu-controls h4{font-family:var(--mono);font-size:.7rem;color:var(--muted);letter-spacing:.1em;}
+.instr-list{display:flex;flex-direction:column;gap:.35rem;max-height:260px;overflow-y:auto;}
+.instr-item{padding:.6rem .75rem;border:1px solid var(--border);background:var(--bg3);font-family:var(--mono);font-size:.78rem;cursor:pointer;transition:all .2s;display:flex;justify-content:space-between;align-items:center;}
+.instr-item:hover{border-color:var(--accent);color:var(--accent);}
+.instr-item.running{border-color:var(--yellow);color:var(--yellow);background:rgba(234,179,8,.08);}
+.instr-item.done{border-color:var(--green);color:var(--green);background:rgba(34,197,94,.06);}
+.instr-op{font-size:.65rem;color:var(--muted);font-family:var(--mono);}
+.cpu-log{margin-top:1rem;background:var(--bg3);border:1px solid var(--border);padding:.75rem;max-height:140px;overflow-y:auto;}
+.log-line{font-family:var(--mono);font-size:.72rem;color:var(--muted);padding:.15rem 0;border-bottom:1px solid rgba(255,255,255,.03);}
+.log-line.info{color:var(--accent);}
+.log-line.exec{color:var(--yellow);}
+.log-line.ok{color:var(--green);}
+.btn-row{display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap;}
+.btn{padding:.5rem 1rem;border:1px solid var(--border);background:transparent;color:var(--text);font-family:var(--sans);font-size:.8rem;font-weight:600;cursor:pointer;transition:all .2s;}
+.btn:hover{border-color:var(--accent);color:var(--accent);}
+.btn.primary{background:var(--accent);color:#000;border-color:var(--accent);}
+.btn.primary:hover{background:transparent;color:var(--accent);}
+.btn.danger{border-color:var(--accent2);color:var(--accent2);}
+.btn.danger:hover{background:var(--accent2);color:#000;}
+.cycle-display{margin-top:1rem;display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;}
+.cycle-step{padding:.6rem;background:var(--bg3);border:1px solid var(--border);text-align:center;transition:all .3s;}
+.cycle-step.active{border-color:var(--yellow);background:rgba(234,179,8,.1);}
+.cycle-step .cs-label{font-family:var(--mono);font-size:.6rem;color:var(--muted);letter-spacing:.08em;margin-bottom:.25rem;}
+.cycle-step .cs-name{font-size:.8rem;font-weight:800;}
+
+/* pipeline viz */
+.pipeline{margin-top:1rem;overflow-x:auto;}
+.pipeline-row{display:flex;gap:0;min-width:500px;}
+.pipe-stage{flex:1;height:36px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border);font-family:var(--mono);font-size:.65rem;transition:all .4s;background:var(--bg3);}
+.pipe-stage.IF{background:rgba(0,229,255,.15);border-color:var(--accent);color:var(--accent);}
+.pipe-stage.ID{background:rgba(168,85,247,.15);border-color:var(--accent3);color:var(--accent3);}
+.pipe-stage.EX{background:rgba(234,179,8,.15);border-color:var(--yellow);color:var(--yellow);}
+.pipe-stage.MEM{background:rgba(255,107,53,.15);border-color:var(--accent2);color:var(--accent2);}
+.pipe-stage.WB{background:rgba(34,197,94,.15);border-color:var(--green);color:var(--green);}
+.pipe-stage.empty{background:var(--bg3);color:var(--muted);}
+
+/* status bar */
+.status-bar{display:flex;gap:1rem;padding:.75rem 1.25rem;background:var(--bg2);border:1px solid var(--border);margin-bottom:1rem;flex-wrap:wrap;}
+.stat-item{display:flex;align-items:center;gap:.5rem;}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.stat-dot.green{background:var(--green);box-shadow:0 0 6px var(--green);}
+.stat-dot.yellow{background:var(--yellow);}
+.stat-dot.cyan{background:var(--accent);}
+.stat-label{font-family:var(--mono);font-size:.68rem;color:var(--muted);}
+.stat-value{font-family:var(--mono);font-size:.68rem;color:var(--text);font-weight:700;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">// ARCH-SIM v1.0</div>
+  <div class="tabs">
+    <button class="tab active" onclick="showSection('arch')">Von Neumann / Harvard</button>
+    <button class="tab" onclick="showSection('units')">Unidades</button>
+    <button class="tab" onclick="showSection('cpu')">Procesador</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Arquitectura de<br><span>Computadoras</span></h1>
+  <p>Simulador interactivo — explora las arquitecturas fundamentales, unidades y el procesador.</p>
+</div>
+
+<!-- ============ SECCIÓN 1: ARQUITECTURAS ============ -->
+<div class="section active" id="sec-arch">
+  <div class="section-title"><span>01.</span> Arquitecturas</div>
+  <div class="section-sub">// Von Neumann vs. Harvard — diferencias clave</div>
+
+  <div class="arch-grid">
+
+    <!-- VON NEUMANN -->
+    <div class="arch-card neumann">
+      <span class="arch-badge">VON NEUMANN — 1945</span>
+      <h3>Memoria unificada</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;">Datos e instrucciones comparten el <strong style="color:var(--text)">mismo bus y memoria</strong>. Arquitectura de la mayoría de PCs.</p>
+
+      <svg class="diag-svg" viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#00e5ff"/>
+          </marker>
+        </defs>
+        <!-- Memoria única -->
+        <rect x="10" y="20" width="100" height="160" rx="4" fill="rgba(0,229,255,.06)" stroke="#00e5ff" stroke-width="1"/>
+        <text x="60" y="14" text-anchor="middle" fill="#00e5ff" font-size="9" font-family="'Space Mono',monospace">MEMORIA</text>
+        <rect x="18" y="30" width="84" height="28" rx="2" fill="rgba(0,229,255,.15)"/>
+        <text x="60" y="49" text-anchor="middle" fill="#e2e8f0" font-size="8" font-family="'Space Mono',monospace">INSTRUCCIONES</text>
+        <rect x="18" y="66" width="84" height="28" rx="2" fill="rgba(168,85,247,.15)"/>
+        <text x="60" y="85" text-anchor="middle" fill="#e2e8f0" font-size="8" font-family="'Space Mono',monospace">DATOS</text>
+        <rect x="18" y="102" width="84" height="28" rx="2" fill="rgba(168,85,247,.15)"/>
+        <text x="60" y="121" text-anchor="middle" fill="#e2e8f0" font-size="8" font-family="'Space Mono',monospace">DATOS</text>
+        <rect x="18" y="138" width="84" height="28" rx="2" fill="rgba(0,229,255,.15)"/>
+        <text x="60" y="157" text-anchor="middle" fill="#e2e8f0" font-size="8" font-family="'Space Mono',monospace">INSTRUCCIONES</text>
+
+        <!-- BUS único -->
+        <rect x="120" y="88" width="90" height="24" rx="2" fill="rgba(0,229,255,.1)" stroke="#00e5ff" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="165" y="103" text-anchor="middle" fill="#00e5ff" font-size="8" font-family="'Space Mono',monospace">BUS ÚNICO</text>
+        <!-- animación paquetes -->
+        <circle r="4" fill="#00e5ff" opacity=".9" cx="120" cy="100">
+          <animateMotion dur="2s" repeatCount="indefinite" begin="0s" path="M0,0 L90,0"/>
+          <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite"/>
+        </circle>
+        <circle r="4" fill="#a855f7" opacity=".9" cx="120" cy="100">
+          <animateMotion dur="2s" repeatCount="indefinite" begin="0.7s" path="M0,0 L90,0"/>
+          <animate attributeName="opacity" values="0;1;1;0" dur="2s" repeatCount="indefinite" begin="0.7s"/>
+        </circle>
+
+        <!-- CPU -->
+        <rect x="220" y="60" width="110" height="80" rx="4" fill="rgba(0,229,255,.06)" stroke="#00e5ff" stroke-width="1.5"/>
+        <text x="275" y="76" text-anchor="middle" fill="#00e5ff" font-size="9" font-family="'Space Mono',monospace">CPU</text>
+        <rect x="230" y="82" width="42" height="22" rx="2" fill="rgba(0,229,255,.15)"/>
+        <text x="251" y="97" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">ALU</text>
+        <rect x="278" y="82" width="42" height="22" rx="2" fill="rgba(168,85,247,.15)"/>
+        <text x="299" y="97" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">UC</text>
+        <rect x="230" y="110" width="90" height="20" rx="2" fill="rgba(234,179,8,.1)"/>
+        <text x="275" y="124" text-anchor="middle" fill="#eab308" font-size="7" font-family="'Space Mono',monospace">REGISTROS</text>
+
+        <!-- líneas conexión -->
+        <line x1="110" y1="100" x2="120" y2="100" stroke="#00e5ff" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="210" y1="100" x2="220" y2="100" stroke="#00e5ff" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- bottleneck label -->
+        <text x="165" y="130" text-anchor="middle" fill="#ff6b35" font-size="7.5" font-family="'Space Mono',monospace">⚠ cuello de botella</text>
+      </svg>
+
+      <ul class="feat-list">
+        <li><strong>Memoria única</strong> para datos e instrucciones</li>
+        <li><strong>Bus compartido</strong> — solo una operación a la vez</li>
+        <li>Simple de implementar, menor costo</li>
+        <li>Cuello de botella de Von Neumann</li>
+        <li>Usado en: PCs, laptops, servidores</li>
+      </ul>
+    </div>
+
+    <!-- HARVARD -->
+    <div class="arch-card harvard">
+      <span class="arch-badge">HARVARD — MODIFICADA</span>
+      <h3>Memorias separadas</h3>
+      <p style="font-size:.8rem;color:var(--muted);margin-bottom:1rem;">Datos e instrucciones usan <strong style="color:var(--text)">buses y memorias separados</strong>. Mayor velocidad en paralelismo.</p>
+
+      <svg class="diag-svg" viewBox="0 0 340 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#ff6b35"/>
+          </marker>
+          <marker id="arr3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+            <path d="M0,0 L6,3 L0,6 Z" fill="#a855f7"/>
+          </marker>
+        </defs>
+        <!-- Mem Instrucciones -->
+        <rect x="5" y="20" width="90" height="70" rx="4" fill="rgba(255,107,53,.06)" stroke="#ff6b35" stroke-width="1"/>
+        <text x="50" y="14" text-anchor="middle" fill="#ff6b35" font-size="8" font-family="'Space Mono',monospace">MEM. INSTR.</text>
+        <rect x="13" y="30" width="74" height="20" rx="2" fill="rgba(255,107,53,.2)"/>
+        <text x="50" y="44" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">INSTRUCCIONES</text>
+        <rect x="13" y="56" width="74" height="20" rx="2" fill="rgba(255,107,53,.12)"/>
+        <text x="50" y="70" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">INSTRUCCIONES</text>
+
+        <!-- Mem Datos -->
+        <rect x="5" y="112" width="90" height="70" rx="4" fill="rgba(168,85,247,.06)" stroke="#a855f7" stroke-width="1"/>
+        <text x="50" y="107" text-anchor="middle" fill="#a855f7" font-size="8" font-family="'Space Mono',monospace">MEM. DATOS</text>
+        <rect x="13" y="122" width="74" height="20" rx="2" fill="rgba(168,85,247,.2)"/>
+        <text x="50" y="136" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">DATOS</text>
+        <rect x="13" y="148" width="74" height="20" rx="2" fill="rgba(168,85,247,.12)"/>
+        <text x="50" y="162" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">DATOS</text>
+
+        <!-- Bus instrucciones -->
+        <rect x="102" y="36" width="80" height="16" rx="2" fill="rgba(255,107,53,.1)" stroke="#ff6b35" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="142" y="48" text-anchor="middle" fill="#ff6b35" font-size="7" font-family="'Space Mono',monospace">BUS INSTR.</text>
+        <circle r="3" fill="#ff6b35" opacity=".9" cx="102" cy="44">
+          <animateMotion dur="1.5s" repeatCount="indefinite" begin="0s" path="M0,0 L80,0"/>
+          <animate attributeName="opacity" values="0;1;1;0" dur="1.5s" repeatCount="indefinite"/>
+        </circle>
+
+        <!-- Bus datos -->
+        <rect x="102" y="128" width="80" height="16" rx="2" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-width="1" stroke-dasharray="4 2"/>
+        <text x="142" y="140" text-anchor="middle" fill="#a855f7" font-size="7" font-family="'Space Mono',monospace">BUS DATOS</text>
+        <circle r="3" fill="#a855f7" opacity=".9" cx="102" cy="136">
+          <animateMotion dur="1.5s" repeatCount="indefinite" begin="0.3s" path="M0,0 L80,0"/>
+          <animate attributeName="opacity" values="0;1;1;0" dur="1.5s" repeatCount="indefinite" begin="0.3s"/>
+        </circle>
+
+        <!-- CPU central -->
+        <rect x="190" y="50" width="140" height="100" rx="4" fill="rgba(255,107,53,.06)" stroke="#ff6b35" stroke-width="1.5"/>
+        <text x="260" y="66" text-anchor="middle" fill="#ff6b35" font-size="9" font-family="'Space Mono',monospace">CPU</text>
+        <rect x="200" y="74" width="50" height="22" rx="2" fill="rgba(255,107,53,.15)"/>
+        <text x="225" y="89" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">ALU</text>
+        <rect x="258" y="74" width="60" height="22" rx="2" fill="rgba(168,85,247,.15)"/>
+        <text x="288" y="89" text-anchor="middle" fill="#e2e8f0" font-size="7" font-family="'Space Mono',monospace">UC / PC</text>
+        <rect x="200" y="104" width="118" height="18" rx="2" fill="rgba(234,179,8,.1)"/>
+        <text x="259" y="117" text-anchor="middle" fill="#eab308" font-size="7" font-family="'Space Mono',monospace">REGISTROS</text>
+        <rect x="200" y="128" width="56" height="14" rx="2" fill="rgba(34,197,94,.1)"/>
+        <text x="228" y="139" text-anchor="middle" fill="#22c55e" font-size="6.5" font-family="'Space Mono',monospace">CACHE I</text>
+        <rect x="262" y="128" width="56" height="14" rx="2" fill="rgba(34,197,94,.1)"/>
+        <text x="290" y="139" text-anchor="middle" fill="#22c55e" font-size="6.5" font-family="'Space Mono',monospace">CACHE D</text>
+
+        <!-- líneas bus→cpu -->
+        <line x1="182" y1="44" x2="190" y2="80" stroke="#ff6b35" stroke-width="1" marker-end="url(#arr2)"/>
+        <line x1="182" y1="136" x2="190" y2="130" stroke="#a855f7" stroke-width="1" marker-end="url(#arr3)"/>
+
+        <!-- paralelo label -->
+        <text x="260" y="190" text-anchor="middle" fill="#22c55e" font-size="7.5" font-family="'Space Mono',monospace">✓ acceso paralelo</text>
+      </svg>
+
+      <ul class="feat-list">
+        <li><strong>Memorias separadas</strong> — datos e instrucciones</li>
+        <li><strong>Buses paralelos</strong> — acceso simultáneo</li>
+        <li>Sin cuello de botella, mayor rendimiento</li>
+        <li>Mayor costo y complejidad</li>
+        <li>Usado en: microcontroladores, DSPs, GPUs</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- tabla comparativa -->
+  <table class="comp-table">
+    <thead>
+      <tr>
+        <th>CARACTERÍSTICA</th>
+        <th><span class="tag-n">VON NEUMANN</span></th>
+        <th><span class="tag-h">HARVARD</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Memoria</td>
+        <td class="tag-n">Unificada (datos + instr.)</td>
+        <td class="tag-h">Separada por función</td>
+      </tr>
+      <tr>
+        <td>Buses</td>
+        <td class="tag-n">Uno compartido</td>
+        <td class="tag-h">Múltiples (paralelos)</td>
+      </tr>
+      <tr>
+        <td>Velocidad</td>
+        <td class="tag-n">Limitada por bus</td>
+        <td class="tag-h">Mayor rendimiento</td>
+      </tr>
+      <tr>
+        <td>Costo/Complejidad</td>
+        <td class="tag-n">Bajo</td>
+        <td class="tag-h">Mayor</td>
+      </tr>
+      <tr>
+        <td>Cuello de botella</td>
+        <td class="tag-n">Sí (Von Neumann)</td>
+        <td class="tag-h">No</td>
+      </tr>
+      <tr>
+        <td>Usos típicos</td>
+        <td class="tag-n">PC, servidores</td>
+        <td class="tag-h">MCU, DSP, GPU, caché CPU</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ SECCIÓN 2: UNIDADES ============ -->
+<div class="section" id="sec-units">
+  <div class="section-title"><span>02.</span> Unidades principales</div>
+  <div class="section-sub">// Componentes funcionales de una computadora — haz clic para más detalle</div>
+
+  <div class="units-grid">
+    <div class="unit-card" onclick="showUnit('uc')">
+      <div class="unit-icon">⚙️</div>
+      <h4>Unidad de Control (UC)</h4>
+      <p>Dirige el flujo de datos e instrucciones en la CPU. El "director de orquesta" del sistema.</p>
+    </div>
+    <div class="unit-card" onclick="showUnit('alu')">
+      <div class="unit-icon">➕</div>
+      <h4>ALU — Aritmético-Lógica</h4>
+      <p>Ejecuta operaciones matemáticas y lógicas (suma, resta, AND, OR, comparaciones).</p>
+    </div>
+    <div class="unit-card" onclick="showUnit('mem')">
+      <div class="unit-icon">💾</div>
+      <h4>Unidad de Memoria</h4>
+      <p>Almacena datos e instrucciones. Incluye RAM, ROM, caché y registros internos.</p>
+    </div>
+    <div class="unit-card" onclick="showUnit('es')">
+      <div class="unit-icon">🔌</div>
+      <h4>E/S — Entrada / Salida</h4>
+      <p>Interfaz con el mundo exterior. Teclado, pantalla, disco, red — todo pasa por aquí.</p>
+    </div>
+    <div class="unit-card" onclick="showUnit('bus')">
+      <div class="unit-icon">🚌</div>
+      <h4>Bus del Sistema</h4>
+      <p>Canal de comunicación entre todos los componentes. Datos, direcciones y control.</p>
+    </div>
+    <div class="unit-card" onclick="showUnit('reg')">
+      <div class="unit-icon">📋</div>
+      <h4>Registros del CPU</h4>
+      <p>Memoria ultra-rápida interna del procesador. PC, IR, MAR, MDR, ACC, FLAGS.</p>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="unit-uc">
+    <h3>⚙️ Unidad de Control (UC)</h3>
+    <div class="detail-grid">
+      <div>
+        <div class="detail-stat"><div class="label">FUNCIÓN PRINCIPAL</div><div class="value" style="font-size:.85rem;color:var(--accent)">Decodificar y controlar</div></div>
+        <ul class="feat-list" style="margin-top:1rem;">
+          <li>Lee instrucciones de memoria</li>
+          <li>Las decodifica (¿qué operación?)</li>
+          <li>Genera señales de control</li>
+          <li>Coordina ALU, registros y buses</li>
+          <li>Maneja el ciclo fetch-decode-execute</li>
+        </ul>
+      </div>
+      <div>
+        <div class="detail-stat"><div class="label">COMPONENTES INTERNOS</div><div class="value" style="font-size:.8rem;color:var(--text);line-height:1.6">IR · PC · Decodificador · Secuenciador · Generador de señales</div></div>
+        <div class="detail-stat" style="margin-top:.75rem;"><div class="label">IMPLEMENTACIÓN</div><div class="value" style="font-size:.8rem;color:var(--accent2)">Cableada (rápida) o Microprogramada (flexible)</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="unit-alu">
+    <h3>➕ Unidad Aritmético-Lógica (ALU)</h3>
+    <div class="detail-grid">
+      <div>
+        <div class="detail-stat"><div class="label">OPERACIONES ARITMÉTICAS</div><div class="value" style="font-size:.85rem;color:var(--accent)">Suma · Resta · Multiplicación · División</div></div>
+        <div class="detail-stat" style="margin-top:.75rem;"><div class="label">OPERACIONES LÓGICAS</div><div class="value" style="font-size:.85rem;color:var(--accent3)">AND · OR · NOT · XOR · Desplazamiento</div></div>
+      </div>
+      <div>
+        <div class="detail-stat"><div class="label">ENTRADAS / SALIDAS</div><div class="value" style="font-size:.8rem;color:var(--text);line-height:1.6">2 operandos (A, B) + código de op → Resultado + Flags (zero, carry, overflow, sign)</div></div>
+        <div class="detail-stat" style="margin-top:.75rem;"><div class="label">VELOCIDAD</div><div class="value" style="font-size:.85rem;color:var(--green)">Operación en 1–4 ciclos de reloj</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="unit-mem">
+    <h3>💾 Jerarquía de Memoria</h3>
+    <div style="margin-top:.75rem;display:flex;flex-direction:column;gap:.4rem;">
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <div style="width:120px;background:rgba(0,229,255,.3);height:28px;display:flex;align-items:center;padding-left:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--accent)">REGISTROS</div>
+        <span style="font-size:.75rem;color:var(--muted)">~1 ciclo · bytes · en el CPU</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <div style="width:160px;background:rgba(0,229,255,.2);height:28px;display:flex;align-items:center;padding-left:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--accent)">CACHÉ L1/L2/L3</div>
+        <span style="font-size:.75rem;color:var(--muted)">4–40 ciclos · KB/MB · en chip</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <div style="width:220px;background:rgba(168,85,247,.2);height:28px;display:flex;align-items:center;padding-left:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--accent3)">RAM (Memoria principal)</div>
+        <span style="font-size:.75rem;color:var(--muted)">~200 ciclos · GB · volátil</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <div style="width:280px;background:rgba(255,107,53,.2);height:28px;display:flex;align-items:center;padding-left:.5rem;font-family:var(--mono);font-size:.7rem;color:var(--accent2)">SSD / HDD (Almacenamiento)</div>
+        <span style="font-size:.75rem;color:var(--muted)">ms / TB · no volátil</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="unit-es">
+    <h3>🔌 Entrada / Salida (E/S)</h3>
+    <div class="detail-grid">
+      <div>
+        <div class="detail-stat"><div class="label">DISPOSITIVOS DE ENTRADA</div><div class="value" style="font-size:.8rem;color:var(--text);line-height:1.6">Teclado · Ratón · Escáner · Cámara · Micrófono · Sensores</div></div>
+      </div>
+      <div>
+        <div class="detail-stat"><div class="label">DISPOSITIVOS DE SALIDA</div><div class="value" style="font-size:.8rem;color:var(--text);line-height:1.6">Monitor · Impresora · Altavoces · Proyector · Actuadores</div></div>
+      </div>
+      <div>
+        <div class="detail-stat"><div class="label">MÉTODOS DE TRANSFERENCIA</div><div class="value" style="font-size:.8rem;color:var(--accent)">Polling · Interrupciones · DMA (Acceso directo a memoria)</div></div>
+      </div>
+      <div>
+        <div class="detail-stat"><div class="label">INTERFACES</div><div class="value" style="font-size:.8rem;color:var(--accent3)">USB · PCIe · SATA · HDMI · Bluetooth · Ethernet</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="unit-bus">
+    <h3>🚌 Bus del Sistema</h3>
+    <div class="detail-grid">
+      <div>
+        <div class="detail-stat"><div class="label">BUS DE DATOS</div><div class="value" style="font-size:.85rem;color:var(--accent)">Transfiere datos entre CPU, memoria y E/S</div></div>
+        <div class="detail-stat" style="margin-top:.75rem;"><div class="label">BUS DE DIRECCIONES</div><div class="value" style="font-size:.85rem;color:var(--accent3)">Especifica la dirección de memoria a acceder</div></div>
+      </div>
+      <div>
+        <div class="detail-stat"><div class="label">BUS DE CONTROL</div><div class="value" style="font-size:.85rem;color:var(--accent2)">Señales de lectura/escritura, interrupciones, reloj</div></div>
+        <div class="detail-stat" style="margin-top:.75rem;"><div class="label">ANCHO TÍPICO</div><div class="value" style="font-size:.85rem;color:var(--green)">64 bits (datos) · 48 bits (dirección) en CPU modernos</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="unit-detail" id="unit-reg">
+    <h3>📋 Registros del CPU</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:.75rem;margin-top:.5rem;">
+      <div class="detail-stat"><div class="label">PC — Program Counter</div><div class="value" style="font-size:.8rem;color:var(--accent)">Dirección de la próxima instrucción</div></div>
+      <div class="detail-stat"><div class="label">IR — Instruction Register</div><div class="value" style="font-size:.8rem;color:var(--accent3)">Instrucción en ejecución actual</div></div>
+      <div class="detail-stat"><div class="label">MAR — Memory Address</div><div class="value" style="font-size:.8rem;color:var(--accent2)">Dirección de memoria a leer/escribir</div></div>
+      <div class="detail-stat"><div class="label">MDR — Memory Data</div><div class="value" style="font-size:.8rem;color:var(--yellow)">Dato leído de / a escribir en memoria</div></div>
+      <div class="detail-stat"><div class="label">ACC — Acumulador</div><div class="value" style="font-size:.8rem;color:var(--green)">Resultado de operaciones ALU</div></div>
+      <div class="detail-stat"><div class="label">FLAGS / PSW</div><div class="value" style="font-size:.8rem;color:var(--muted)">Zero · Carry · Overflow · Sign</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SECCIÓN 3: CPU SIMULATOR ============ -->
+<div class="section" id="sec-cpu">
+  <div class="section-title"><span>03.</span> Procesador — Simulador</div>
+  <div class="section-sub">// Ciclo Fetch-Decode-Execute y pipeline de instrucciones</div>
+
+  <div class="status-bar">
+    <div class="stat-item"><div class="stat-dot green"></div><span class="stat-label">ESTADO:&nbsp;</span><span class="stat-value" id="cpu-status">LISTO</span></div>
+    <div class="stat-item"><div class="stat-dot cyan"></div><span class="stat-label">CICLOS:&nbsp;</span><span class="stat-value" id="cycle-count">0</span></div>
+    <div class="stat-item"><div class="stat-dot yellow"></div><span class="stat-label">PC:&nbsp;</span><span class="stat-value" id="pc-display">0x0000</span></div>
+    <div class="stat-item"><div class="stat-dot" style="background:var(--accent3)"></div><span class="stat-label">INSTR:&nbsp;</span><span class="stat-value" id="instr-display">—</span></div>
+  </div>
+
+  <div class="cpu-layout">
+    <div class="cpu-visual">
+      <h4>// REGISTROS</h4>
+      <div id="reg-display"></div>
+
+      <div style="margin-top:1.25rem;">
+        <h4>// CICLO DE INSTRUCCIÓN</h4>
+        <div class="cycle-display">
+          <div class="cycle-step" id="step-fetch"><div class="cs-label">1. FETCH</div><div class="cs-name">Leer</div></div>
+          <div class="cycle-step" id="step-decode"><div class="cs-label">2. DECODE</div><div class="cs-name">Decodificar</div></div>
+          <div class="cycle-step" id="step-execute"><div class="cs-label">3. EXECUTE</div><div class="cs-name">Ejecutar</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cpu-controls">
+      <h4>// PROGRAMA — instrucciones cargadas</h4>
+      <div class="instr-list" id="instr-list"></div>
+
+      <div class="btn-row">
+        <button class="btn primary" onclick="runStep()">▶ Paso a paso</button>
+        <button class="btn" onclick="runAll()">⚡ Ejecutar todo</button>
+        <button class="btn danger" onclick="resetCPU()">↺ Reset</button>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <h4>// PIPELINE (5 etapas)</h4>
+        <div class="pipeline">
+          <div class="pipeline-row" id="pipeline-viz"></div>
+        </div>
+      </div>
+
+      <div class="cpu-log" id="cpu-log">
+        <div class="log-line info">// Sistema inicializado — presiona "Paso a paso"</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== NAVIGATION =====
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ===== UNITS =====
+function showUnit(id) {
+  document.querySelectorAll('.unit-detail').forEach(d => d.classList.remove('show'));
+  document.querySelectorAll('.unit-card').forEach(c => c.classList.remove('active'));
+  const el = document.getElementById('unit-' + id);
+  if (el) { el.classList.add('show'); el.scrollIntoView({behavior:'smooth', block:'nearest'}); }
+  event.currentTarget.classList.add('active');
+}
+
+// ===== CPU SIMULATOR =====
+const PROGRAM = [
+  { op:'LOAD',  args:'R1, #10',   desc:'Carga valor 10 en R1',         cycles:2, reg:'R1', val:10 },
+  { op:'LOAD',  args:'R2, #25',   desc:'Carga valor 25 en R2',         cycles:2, reg:'R2', val:25 },
+  { op:'ADD',   args:'R3, R1, R2',desc:'R3 = R1 + R2 (35)',            cycles:1, reg:'R3', val:35 },
+  { op:'MOV',   args:'R4, R3',    desc:'R4 = R3 (copia resultado)',     cycles:1, reg:'R4', val:35 },
+  { op:'SUB',   args:'R5, R2, R1',desc:'R5 = R2 - R1 (15)',            cycles:1, reg:'R5', val:15 },
+  { op:'MUL',   args:'R6, R1, R5',desc:'R6 = R1 × R5 (150)',           cycles:3, reg:'R6', val:150},
+  { op:'CMP',   args:'R3, R4',    desc:'Compara R3 == R4 → Z=1',       cycles:1, reg:'FLAGS', val:1 },
+  { op:'STORE', args:'[0x100], R6',desc:'Escribe R6 en dirección 0x100',cycles:2, reg:'MEM[0x100]',val:150},
+  { op:'NOP',   args:'',          desc:'Sin operación — fin del programa',cycles:1,reg:null,val:null},
+];
+
+const PIPE_STAGES = ['IF','ID','EX','MEM','WB'];
+let cpu = { pc:0, cycles:0, regs:{R1:0,R2:0,R3:0,R4:0,R5:0,R6:0,FLAGS:0}, done:false, running:false };
+let pipeState = Array(5).fill(null);
+
+function fmtHex(n){ return '0x'+ n.toString(16).toUpperCase().padStart(4,'0'); }
+
+function renderRegs() {
+  const d = document.getElementById('reg-display');
+  const max = {R1:100,R2:100,R3:100,R4:100,R5:100,R6:200,FLAGS:1};
+  d.innerHTML = Object.entries(cpu.regs).map(([k,v]) => {
+    const pct = Math.min(100, (v / (max[k]||200))*100);
+    return `<div class="reg-row">
+      <span class="reg-label">${k}</span>
+      <div class="reg-bar"><div class="reg-fill" style="width:${pct}%"></div></div>
+      <span class="reg-val">${v}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderInstrList() {
+  const list = document.getElementById('instr-list');
+  list.innerHTML = PROGRAM.map((instr,i) => {
+    let cls = '';
+    if(i < cpu.pc) cls = 'done';
+    if(i === cpu.pc && !cpu.done) cls = 'running';
+    return `<div class="instr-item ${cls}">
+      <span>${fmtHex(i*4)}&nbsp;&nbsp;<strong>${instr.op}</strong>&nbsp;${instr.args}</span>
+      <span class="instr-op">${instr.cycles}c</span>
+    </div>`;
+  }).join('');
+}
+
+function renderPipeline() {
+  const viz = document.getElementById('pipeline-viz');
+  viz.innerHTML = PIPE_STAGES.map((s,i) => {
+    const active = pipeState[i];
+    return `<div class="pipe-stage ${active ? s : 'empty'}">${active ? s : '—'}</div>`;
+  }).join('');
+}
+
+function setCycleStep(step) {
+  ['fetch','decode','execute'].forEach((s,i) => {
+    document.getElementById('step-'+s).classList.toggle('active', i === step);
+  });
+}
+
+function addLog(msg, type='') {
+  const log = document.getElementById('cpu-log');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + type;
+  line.textContent = msg;
+  log.appendChild(line);
+  log.scrollTop = log.scrollHeight;
+}
+
+function updateStatus() {
+  document.getElementById('cpu-status').textContent = cpu.done ? 'COMPLETADO' : (cpu.running ? 'EJECUTANDO' : 'LISTO');
+  document.getElementById('cycle-count').textContent = cpu.cycles;
+  document.getElementById('pc-display').textContent = fmtHex(cpu.pc * 4);
+  document.getElementById('instr-display').textContent = cpu.pc < PROGRAM.length ? PROGRAM[cpu.pc].op : '—';
+}
+
+let stepPhase = 0; // 0=fetch 1=decode 2=execute
+
+async function runStep() {
+  if(cpu.done) return;
+  const instr = PROGRAM[cpu.pc];
+
+  if(stepPhase === 0) {
+    setCycleStep(0);
+    pipeState = [instr.op, pipeState[0], pipeState[1], pipeState[2], pipeState[3]];
+    addLog(`FETCH  ${fmtHex(cpu.pc*4)} → IR = ${instr.op} ${instr.args}`, 'exec');
+    cpu.cycles++;
+    stepPhase = 1;
+  } else if(stepPhase === 1) {
+    setCycleStep(1);
+    addLog(`DECODE → Operación: ${instr.op} | Ciclos requeridos: ${instr.cycles}`, 'info');
+    cpu.cycles++;
+    stepPhase = 2;
+  } else {
+    setCycleStep(2);
+    if(instr.reg && instr.val !== null) {
+      if(instr.reg in cpu.regs) cpu.regs[instr.reg] = instr.val;
+    }
+    addLog(`EXECUTE → ${instr.desc}`, 'ok');
+    cpu.cycles += instr.cycles;
+    cpu.pc++;
+    stepPhase = 0;
+    if(cpu.pc >= PROGRAM.length) {
+      cpu.done = true;
+      addLog('✓ Programa completado. ' + cpu.cycles + ' ciclos totales.', 'ok');
+      setCycleStep(-1);
+      pipeState = Array(5).fill(null);
+    }
+  }
+  renderRegs();
+  renderInstrList();
+  renderPipeline();
+  updateStatus();
+}
+
+async function runAll() {
+  if(cpu.done) return;
+  cpu.running = true;
+  while(!cpu.done) {
+    await new Promise(r => setTimeout(r, 220));
+    await runStep();
+    if(stepPhase !== 0) { await new Promise(r=>setTimeout(r,120)); await runStep(); }
+    if(stepPhase !== 0) { await new Promise(r=>setTimeout(r,120)); await runStep(); }
+  }
+  cpu.running = false;
+  updateStatus();
+}
+
+function resetCPU() {
+  cpu = { pc:0, cycles:0, regs:{R1:0,R2:0,R3:0,R4:0,R5:0,R6:0,FLAGS:0}, done:false, running:false };
+  pipeState = Array(5).fill(null);
+  stepPhase = 0;
+  document.getElementById('cpu-log').innerHTML = '<div class="log-line info">// CPU reiniciado — listo para ejecutar</div>';
+  setCycleStep(-1);
+  renderRegs(); renderInstrList(); renderPipeline(); updateStatus();
+}
+
+// init
+renderRegs(); renderInstrList(); renderPipeline(); updateStatus();
+</script>
+</body>
+</html>
