@@ -1,0 +1,2515 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PC Builder Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-card: #1c2128;
+    --bg-slot: #0a0e14;
+    --border: #30363d;
+    --border-active: #00d4ff;
+    --cyan: #00d4ff;
+    --green: #00ff88;
+    --amber: #ffb700;
+    --red: #ff4757;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-dim: #484f58;
+    --shadow-cyan: 0 0 20px rgba(0,212,255,0.3);
+    --shadow-green: 0 0 20px rgba(0,255,136,0.3);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* SCANLINE overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  /* HEADER */
+  header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .logo h1 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cyan);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .logo span {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  .header-stats {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+  }
+
+  .stat-item {
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stat-value {
+    font-size: 14px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--cyan);
+  }
+
+  .btn-primary {
+    background: var(--cyan);
+    color: #000;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 1px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+
+  .btn-primary:hover { background: #33dcff; transform: translateY(-1px); box-shadow: var(--shadow-cyan); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+    padding: 8px 20px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-secondary:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* MAIN LAYOUT */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 340px 1fr 300px;
+    height: calc(100vh - 57px);
+    overflow: hidden;
+  }
+
+  /* PARTS PANEL */
+  .parts-panel {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .panel-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .search-box {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .search-box input {
+    width: 100%;
+    background: var(--bg-slot);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .search-box input:focus { border-color: var(--cyan); }
+
+  .category-tabs {
+    display: flex;
+    overflow-x: auto;
+    padding: 8px 12px;
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+    scrollbar-width: none;
+  }
+  .category-tabs::-webkit-scrollbar { display: none; }
+
+  .cat-tab {
+    background: var(--bg-slot);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 5px 10px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .cat-tab.active, .cat-tab:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,212,255,0.08);
+  }
+
+  .parts-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .part-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 6px;
+    cursor: grab;
+    transition: all 0.2s;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .part-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--cyan);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .part-card:hover {
+    border-color: var(--cyan);
+    transform: translateX(3px);
+    box-shadow: var(--shadow-cyan);
+  }
+
+  .part-card:hover::before { opacity: 1; }
+  .part-card:active { cursor: grabbing; opacity: 0.7; }
+
+  .part-card.installed {
+    opacity: 0.4;
+    pointer-events: none;
+  }
+
+  .part-card.installed::after {
+    content: 'INSTALADO';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--green);
+    letter-spacing: 1px;
+    border: 1px solid var(--green);
+    padding: 2px 5px;
+    border-radius: 2px;
+  }
+
+  .part-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 24px;
+    background: var(--bg-slot);
+    border: 1px solid var(--border);
+  }
+
+  .part-info { flex: 1; min-width: 0; }
+
+  .part-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .part-brand {
+    font-size: 10px;
+    color: var(--cyan);
+    font-family: 'JetBrains Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .part-specs {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.4;
+  }
+
+  .part-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--green);
+    font-family: 'JetBrains Mono', monospace;
+    flex-shrink: 0;
+    text-align: right;
+  }
+
+  /* WORKBENCH */
+  .workbench {
+    background: var(--bg-primary);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .workbench-toolbar {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-secondary);
+  }
+
+  .view-toggle {
+    display: flex;
+    background: var(--bg-slot);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .view-btn {
+    padding: 5px 14px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .view-btn.active {
+    background: var(--cyan);
+    color: #000;
+    font-weight: 700;
+  }
+
+  .workbench-content {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* CASE / MOTHERBOARD VIEW */
+  .pc-case {
+    width: 100%;
+    max-width: 680px;
+    background: linear-gradient(145deg, #1a1f2e, #0f1219);
+    border: 2px solid #2d3548;
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+    min-height: 520px;
+  }
+
+  .pc-case::before {
+    content: 'ATX TOWER PRO X1';
+    position: absolute;
+    top: 12px;
+    left: 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 2px;
+  }
+
+  .case-grid {
+    display: grid;
+    grid-template-areas:
+      "mb mb mb"
+      "mb mb mb"
+      "storage storage psu"
+      "fans fans fans";
+    grid-template-columns: 1fr 1fr 180px;
+    grid-template-rows: auto auto 100px 60px;
+    gap: 12px;
+    height: 100%;
+  }
+
+  /* MOTHERBOARD AREA */
+  .motherboard-area {
+    grid-area: mb;
+    background: linear-gradient(135deg, #0d2818 0%, #0a1f10 50%, #061508 100%);
+    border: 1px solid #1a4a20;
+    border-radius: 8px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    min-height: 300px;
+  }
+
+  /* PCB circuit trace decoration */
+  .motherboard-area::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(90deg, rgba(0,180,80,0.06) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(0,180,80,0.06) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+  }
+
+  .mb-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: rgba(0,200,80,0.4);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    position: absolute;
+    top: 8px;
+    right: 10px;
+  }
+
+  .mb-slots-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    height: 100%;
+  }
+
+  .mb-left { display: flex; flex-direction: column; gap: 10px; }
+  .mb-right { display: flex; flex-direction: column; gap: 8px; }
+
+  /* SLOTS */
+  .slot {
+    border: 1px dashed var(--text-dim);
+    border-radius: 6px;
+    padding: 10px;
+    min-height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slot[data-accepts] { cursor: pointer; }
+
+  .slot:hover, .slot.drag-over {
+    border-color: var(--cyan);
+    border-style: solid;
+    background: rgba(0,212,255,0.06);
+    box-shadow: inset 0 0 20px rgba(0,212,255,0.08);
+  }
+
+  .slot.filled {
+    border-color: var(--green);
+    border-style: solid;
+    background: rgba(0,255,136,0.05);
+    cursor: default;
+  }
+
+  .slot-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: block;
+    transition: opacity 0.2s;
+  }
+
+  .slot-icon-hint {
+    font-size: 20px;
+    display: block;
+    opacity: 0.2;
+    margin-bottom: 4px;
+    transition: opacity 0.2s;
+  }
+
+  .slot:hover .slot-label { color: var(--cyan); }
+  .slot:hover .slot-icon-hint { opacity: 0.5; }
+
+  /* INSTALLED COMPONENT in slot */
+  .installed-component {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    animation: snapIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes snapIn {
+    0% { transform: scale(0.5) translateY(-20px); opacity: 0; }
+    60% { transform: scale(1.05) translateY(2px); }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .installed-icon { font-size: 28px; }
+  .installed-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--green);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .installed-brand {
+    font-size: 8px;
+    color: rgba(0,255,136,0.6);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .slot-remove-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 16px;
+    height: 16px;
+    background: rgba(255,71,87,0.2);
+    border: 1px solid rgba(255,71,87,0.4);
+    border-radius: 2px;
+    color: var(--red);
+    font-size: 9px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 5;
+  }
+
+  .slot.filled:hover .slot-remove-btn { opacity: 1; }
+
+  /* CIRCUIT FLASH ANIMATION */
+  .circuit-flash {
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    pointer-events: none;
+    animation: circuitFlash 0.8s ease-out forwards;
+  }
+
+  @keyframes circuitFlash {
+    0% { box-shadow: inset 0 0 0 2px var(--green), 0 0 30px var(--green); opacity: 1; }
+    100% { box-shadow: inset 0 0 0 0px transparent; opacity: 0; }
+  }
+
+  /* RAM SLOTS */
+  .ram-slots { display: flex; gap: 5px; flex-direction: column; }
+
+  .ram-slot {
+    height: 28px;
+    border: 1px dashed var(--text-dim);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 8px;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    gap: 6px;
+  }
+
+  .ram-slot:hover, .ram-slot.drag-over {
+    border-color: var(--amber);
+    border-style: solid;
+    color: var(--amber);
+    background: rgba(255,183,0,0.05);
+  }
+
+  .ram-slot.filled {
+    border-color: var(--amber);
+    border-style: solid;
+    background: rgba(255,183,0,0.08);
+    cursor: default;
+  }
+
+  .ram-slot .slot-remove-btn {
+    margin-left: auto;
+    opacity: 0;
+  }
+
+  .ram-slot.filled:hover .slot-remove-btn { opacity: 1; }
+
+  .ram-bar {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--amber), #ff6b00);
+    box-shadow: 0 0 8px var(--amber);
+    animation: ramGlow 2s ease-in-out infinite;
+  }
+
+  @keyframes ramGlow {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  /* STORAGE & PSU */
+  .storage-area {
+    grid-area: storage;
+    display: flex;
+    gap: 10px;
+  }
+
+  .storage-bay, .psu-slot {
+    background: #0a0c12;
+    border: 1px solid #1e2433;
+    border-radius: 6px;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .storage-bay:hover, .psu-slot:hover,
+  .storage-bay.drag-over, .psu-slot.drag-over {
+    border-color: var(--cyan);
+    background: rgba(0,212,255,0.04);
+  }
+
+  .storage-bay.filled, .psu-slot.filled {
+    border-color: var(--green);
+    background: rgba(0,255,136,0.04);
+    cursor: default;
+  }
+
+  .psu-slot { grid-area: psu; }
+
+  /* FANS AREA */
+  .fans-area {
+    grid-area: fans;
+    background: #080a0f;
+    border: 1px solid #1a2030;
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .fan-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .fan-slots {
+    display: flex;
+    gap: 10px;
+  }
+
+  .fan-slot {
+    width: 40px;
+    height: 40px;
+    border: 1px dashed var(--text-dim);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fan-slot:hover, .fan-slot.drag-over {
+    border-color: var(--cyan);
+    border-style: solid;
+    background: rgba(0,212,255,0.06);
+  }
+
+  .fan-slot.filled {
+    border-color: #5599ff;
+    border-style: solid;
+  }
+
+  .fan-spinning {
+    animation: fanSpin 0.8s linear infinite;
+    font-size: 20px;
+  }
+
+  @keyframes fanSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+
+  /* POWER ON EFFECTS */
+  .boot-sequence {
+    position: fixed;
+    inset: 0;
+    background: #000;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    display: none;
+  }
+
+  .boot-sequence.active { display: flex; }
+
+  .bios-screen {
+    width: 640px;
+    max-width: 90vw;
+    color: #ccc;
+    font-size: 12px;
+    line-height: 1.8;
+    text-align: left;
+  }
+
+  .bios-line {
+    opacity: 0;
+    transform: translateX(-10px);
+    animation: biosLine 0.1s ease forwards;
+  }
+
+  @keyframes biosLine {
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .bios-ok { color: #00ff88; }
+  .bios-check { color: #ffb700; }
+  .bios-error { color: #ff4757; }
+
+  /* INFO PANEL */
+  .info-panel {
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .info-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .info-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .info-tab.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+
+  .info-content {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+
+  .info-section {
+    display: none;
+    padding: 12px;
+  }
+
+  .info-section.active { display: block; }
+
+  /* SPEC CARD */
+  .spec-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .spec-card-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    color: var(--cyan);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .spec-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+  }
+
+  .spec-row:last-child { border-bottom: none; }
+
+  .spec-key {
+    font-size: 10px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .spec-val {
+    font-size: 10px;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+  }
+
+  /* PERFORMANCE BARS */
+  .perf-section { padding: 12px; }
+
+  .perf-item { margin-bottom: 14px; }
+
+  .perf-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+
+  .perf-name {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .perf-value {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+  }
+
+  .perf-bar {
+    height: 6px;
+    background: var(--bg-slot);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .perf-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0%;
+  }
+
+  /* COMPATIBILITY ALERTS */
+  .compat-section { padding: 12px; }
+
+  .alert {
+    display: flex;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 6px;
+    font-size: 11px;
+    line-height: 1.4;
+    animation: alertIn 0.3s ease forwards;
+  }
+
+  @keyframes alertIn {
+    from { transform: translateX(10px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .alert-icon { flex-shrink: 0; font-size: 14px; }
+
+  .alert.success { background: rgba(0,255,136,0.08); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+  .alert.warning { background: rgba(255,183,0,0.08); border: 1px solid rgba(255,183,0,0.3); color: var(--amber); }
+  .alert.error { background: rgba(255,71,87,0.08); border: 1px solid rgba(255,71,87,0.3); color: var(--red); }
+  .alert.info { background: rgba(0,212,255,0.08); border: 1px solid rgba(0,212,255,0.3); color: var(--cyan); }
+
+  /* PROGRESS TRACKER */
+  .progress-section { padding: 12px; }
+
+  .progress-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    border-radius: 4px;
+    margin-bottom: 4px;
+    transition: background 0.2s;
+  }
+
+  .progress-item:hover { background: rgba(255,255,255,0.02); }
+
+  .progress-check {
+    width: 18px;
+    height: 18px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: all 0.3s;
+  }
+
+  .progress-check.done {
+    background: var(--green);
+    border-color: var(--green);
+    color: #000;
+    animation: checkPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes checkPop {
+    0% { transform: scale(0); }
+    70% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  .progress-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .progress-text.done { color: var(--green); }
+
+  /* BUILD COMPLETE OVERLAY */
+  .build-complete {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .build-complete.show { display: flex; }
+
+  .complete-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--green);
+    border-radius: 12px;
+    padding: 40px;
+    text-align: center;
+    max-width: 440px;
+    width: 90%;
+    box-shadow: 0 0 60px rgba(0,255,136,0.3);
+    animation: cardPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+  }
+
+  @keyframes cardPop {
+    from { transform: scale(0.8) translateY(20px); opacity: 0; }
+    to { transform: scale(1) translateY(0); opacity: 1; }
+  }
+
+  .complete-icon { font-size: 64px; margin-bottom: 16px; }
+
+  .complete-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--green);
+    margin-bottom: 8px;
+    letter-spacing: 2px;
+  }
+
+  .complete-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    line-height: 1.5;
+  }
+
+  .complete-specs {
+    background: var(--bg-card);
+    border-radius: 6px;
+    padding: 16px;
+    text-align: left;
+    margin-bottom: 24px;
+  }
+
+  .complete-spec-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .complete-spec-row:last-child { border: none; }
+  .complete-spec-key { color: var(--text-secondary); }
+  .complete-spec-val { color: var(--cyan); font-weight: 700; }
+
+  .complete-actions { display: flex; gap: 10px; justify-content: center; }
+
+  /* TOOLTIP */
+  .tooltip {
+    position: fixed;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    pointer-events: none;
+    z-index: 9999;
+    max-width: 220px;
+    line-height: 1.6;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    display: none;
+  }
+
+  .tooltip.visible { display: block; }
+  .tooltip-title { font-weight: 700; color: var(--cyan); margin-bottom: 6px; }
+
+  /* DRAG GHOST */
+  .drag-ghost {
+    position: fixed;
+    pointer-events: none;
+    z-index: 9999;
+    background: var(--bg-card);
+    border: 2px solid var(--cyan);
+    border-radius: 8px;
+    padding: 10px;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5), var(--shadow-cyan);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--cyan);
+    transform: rotate(2deg);
+  }
+
+  .drag-ghost.active { display: flex; }
+
+  /* NOTIFICATION TOASTS */
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: var(--bg-card);
+    border-left: 3px solid var(--cyan);
+    padding: 12px 16px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-primary);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    animation: toastIn 0.3s ease forwards;
+    max-width: 280px;
+  }
+
+  .toast.success { border-color: var(--green); }
+  .toast.error { border-color: var(--red); }
+  .toast.warning { border-color: var(--amber); }
+
+  @keyframes toastIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  @keyframes toastOut {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+  }
+
+  /* BUDGET BAR */
+  .budget-bar {
+    padding: 10px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .budget-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+
+  .budget-track {
+    flex: 1;
+    height: 4px;
+    background: var(--bg-slot);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .budget-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), var(--cyan));
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .budget-fill.over { background: linear-gradient(90deg, var(--amber), var(--red)); }
+
+  .budget-amount {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green);
+    white-space: nowrap;
+  }
+
+  /* LIST VIEW */
+  .list-view { display: none; width: 100%; max-width: 680px; }
+  .list-view.active { display: block; }
+  .case-view { width: 100%; max-width: 680px; }
+  .case-view.hidden { display: none; }
+
+  .list-slot-row {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .list-slot-row:hover {
+    border-color: var(--cyan);
+    box-shadow: var(--shadow-cyan);
+  }
+
+  .list-slot-row.filled {
+    border-color: var(--green);
+    cursor: default;
+  }
+
+  .list-slot-row.filled:hover {
+    border-color: var(--green);
+    box-shadow: var(--shadow-green);
+  }
+
+  .list-slot-icon { font-size: 28px; }
+
+  .list-slot-info { flex: 1; }
+
+  .list-slot-type {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+  }
+
+  .list-slot-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-top: 2px;
+  }
+
+  .list-slot-name.empty { color: var(--text-dim); font-style: italic; }
+
+  .list-slot-specs {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+    margin-top: 3px;
+  }
+
+  .list-status {
+    font-size: 9px;
+    font-family: 'JetBrains Mono', monospace;
+    padding: 3px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+  }
+
+  .list-status.empty-status { background: rgba(72,79,88,0.3); color: var(--text-dim); border: 1px solid var(--text-dim); }
+  .list-status.filled-status { background: rgba(0,255,136,0.1); color: var(--green); border: 1px solid var(--green); }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* PCIE glow */
+  .pcie-slot {
+    min-height: 80px;
+  }
+
+  /* Responsive */
+  @media (max-width: 1200px) {
+    .main-layout { grid-template-columns: 280px 1fr 260px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <svg class="logo-icon" viewBox="0 0 32 32" fill="none">
+      <rect width="32" height="32" rx="4" fill="#00d4ff" opacity="0.1"/>
+      <rect x="4" y="8" width="24" height="16" rx="2" stroke="#00d4ff" stroke-width="1.5"/>
+      <rect x="8" y="12" width="6" height="4" rx="1" fill="#00d4ff" opacity="0.6"/>
+      <rect x="16" y="12" width="3" height="8" rx="0.5" fill="#00ff88" opacity="0.7"/>
+      <rect x="21" y="12" width="3" height="8" rx="0.5" fill="#00ff88" opacity="0.4"/>
+      <circle cx="10" cy="22" r="1.5" fill="#ffb700"/>
+    </svg>
+    <div>
+      <h1>PC Builder</h1>
+      <span>SIMULATOR v2.0</span>
+    </div>
+  </div>
+  <div class="header-stats">
+    <div class="stat-item">
+      <div class="stat-label">Componentes</div>
+      <div class="stat-value" id="installed-count">0/8</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Presupuesto</div>
+      <div class="stat-value" id="total-cost">$0</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-label">Estado</div>
+      <div class="stat-value" id="build-status" style="color:var(--text-dim)">INCOMPLETO</div>
+    </div>
+    <button class="btn-primary" onclick="powerOn()" id="power-btn" disabled>⚡ ENCENDER</button>
+    <button class="btn-secondary" onclick="resetBuild()">↺ RESET</button>
+  </div>
+</header>
+
+<div class="main-layout">
+
+  <!-- PARTS PANEL -->
+  <div class="parts-panel">
+    <div class="panel-header">
+      <span class="panel-title">Componentes</span>
+      <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">DRAG & DROP</span>
+    </div>
+    <div class="search-box">
+      <input type="text" placeholder="Buscar componentes..." id="search-input" oninput="filterParts()">
+    </div>
+    <div class="category-tabs" id="category-tabs">
+      <div class="cat-tab active" onclick="filterCategory('all', this)">Todos</div>
+      <div class="cat-tab" onclick="filterCategory('cpu', this)">CPU</div>
+      <div class="cat-tab" onclick="filterCategory('gpu', this)">GPU</div>
+      <div class="cat-tab" onclick="filterCategory('ram', this)">RAM</div>
+      <div class="cat-tab" onclick="filterCategory('storage', this)">Storage</div>
+      <div class="cat-tab" onclick="filterCategory('cooler', this)">Cooler</div>
+      <div class="cat-tab" onclick="filterCategory('psu', this)">PSU</div>
+      <div class="cat-tab" onclick="filterCategory('fan', this)">Fans</div>
+    </div>
+    <div class="parts-list" id="parts-list"></div>
+  </div>
+
+  <!-- WORKBENCH -->
+  <div class="workbench">
+    <div class="workbench-toolbar">
+      <div class="view-toggle">
+        <button class="view-btn active" onclick="switchView('case', this)">Vista Gabinete</button>
+        <button class="view-btn" onclick="switchView('list', this)">Lista de Ranuras</button>
+      </div>
+      <span style="font-size:10px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;margin-left:auto;">
+        Arrastra componentes hacia los slots
+      </span>
+    </div>
+
+    <div class="workbench-content">
+      <!-- CASE VIEW -->
+      <div class="case-view" id="case-view">
+        <div class="pc-case">
+          <div class="case-grid">
+
+            <!-- MOTHERBOARD -->
+            <div class="motherboard-area">
+              <span class="mb-label">ATX MOTHERBOARD</span>
+              <div class="mb-slots-grid">
+                <div class="mb-left">
+                  <!-- CPU SOCKET -->
+                  <div class="slot" id="slot-cpu" data-accepts="cpu" ondragover="dragOver(event,'cpu')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'cpu')" onclick="listViewClick('cpu')">
+                    <span class="slot-icon-hint">🔲</span>
+                    <span class="slot-label">CPU SOCKET<br>LGA1700</span>
+                  </div>
+
+                  <!-- CPU COOLER -->
+                  <div class="slot" id="slot-cooler" data-accepts="cooler" ondragover="dragOver(event,'cooler')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'cooler')" onclick="listViewClick('cooler')">
+                    <span class="slot-icon-hint">🌀</span>
+                    <span class="slot-label">CPU COOLER</span>
+                  </div>
+
+                  <!-- PCIE GPU -->
+                  <div class="slot pcie-slot" id="slot-gpu" data-accepts="gpu" ondragover="dragOver(event,'gpu')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'gpu')" onclick="listViewClick('gpu')">
+                    <span class="slot-icon-hint">🎮</span>
+                    <span class="slot-label">PCIe x16<br>GPU SLOT</span>
+                  </div>
+                </div>
+
+                <div class="mb-right">
+                  <!-- RAM SLOTS -->
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(0,200,80,0.4);letter-spacing:1px;margin-bottom:4px;">DDR5 SLOTS</div>
+                  <div class="ram-slots">
+                    <div class="ram-slot" id="slot-ram1" data-accepts="ram" ondragover="dragOver(event,'ram')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'ram1')" onclick="listViewClick('ram1')">
+                      <span>💾</span>
+                      <span style="flex:1;font-size:9px;">DIMM_A1</span>
+                    </div>
+                    <div class="ram-slot" id="slot-ram2" data-accepts="ram" ondragover="dragOver(event,'ram')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'ram2')" onclick="listViewClick('ram2')">
+                      <span>💾</span>
+                      <span style="flex:1;font-size:9px;">DIMM_A2</span>
+                    </div>
+                    <div class="ram-slot" id="slot-ram3" data-accepts="ram" ondragover="dragOver(event,'ram')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'ram3')" onclick="listViewClick('ram3')" style="opacity:0.5;">
+                      <span>💾</span>
+                      <span style="flex:1;font-size:9px;">DIMM_B1</span>
+                    </div>
+                    <div class="ram-slot" id="slot-ram4" data-accepts="ram" ondragover="dragOver(event,'ram')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'ram4')" onclick="listViewClick('ram4')" style="opacity:0.5;">
+                      <span>💾</span>
+                      <span style="flex:1;font-size:9px;">DIMM_B2</span>
+                    </div>
+                  </div>
+
+                  <!-- M.2 SLOT -->
+                  <div style="margin-top:6px;">
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:8px;color:rgba(0,200,80,0.4);letter-spacing:1px;margin-bottom:4px;">M.2 NVMe</div>
+                    <div class="slot" id="slot-m2" data-accepts="storage" style="min-height:44px;" ondragover="dragOver(event,'storage')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'m2')" onclick="listViewClick('m2')">
+                      <span class="slot-icon-hint" style="font-size:14px;margin:0;">💿</span>
+                      <span class="slot-label">M.2 SLOT</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- STORAGE BAYS -->
+            <div class="storage-area">
+              <div class="storage-bay" id="slot-ssd" data-accepts="storage" ondragover="dragOver(event,'storage')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'ssd')" onclick="listViewClick('ssd')">
+                <div style="text-align:center;">
+                  <div style="font-size:24px;opacity:0.3;">💿</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-top:4px;">SATA SSD</div>
+                </div>
+              </div>
+              <div class="storage-bay" id="slot-hdd" data-accepts="storage" ondragover="dragOver(event,'storage')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'hdd')" onclick="listViewClick('hdd')">
+                <div style="text-align:center;">
+                  <div style="font-size:24px;opacity:0.3;">🖥️</div>
+                  <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-top:4px;">3.5" HDD BAY</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PSU -->
+            <div class="psu-slot" id="slot-psu" data-accepts="psu" ondragover="dragOver(event,'psu')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'psu')" onclick="listViewClick('psu')">
+              <div style="text-align:center;">
+                <div style="font-size:28px;opacity:0.3;">🔌</div>
+                <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-top:4px;">PSU SLOT</div>
+              </div>
+            </div>
+
+            <!-- FANS -->
+            <div class="fans-area">
+              <span class="fan-label">Case Fans</span>
+              <div class="fan-slots">
+                <div class="fan-slot" id="slot-fan1" data-accepts="fan" ondragover="dragOver(event,'fan')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'fan1')" onclick="listViewClick('fan1')">
+                  <span style="opacity:0.2;font-size:18px;">🌀</span>
+                </div>
+                <div class="fan-slot" id="slot-fan2" data-accepts="fan" ondragover="dragOver(event,'fan')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'fan2')" onclick="listViewClick('fan2')">
+                  <span style="opacity:0.2;font-size:18px;">🌀</span>
+                </div>
+                <div class="fan-slot" id="slot-fan3" data-accepts="fan" ondragover="dragOver(event,'fan')" ondragleave="dragLeave(event)" ondrop="dropPart(event,'fan3')" onclick="listViewClick('fan3')">
+                  <span style="opacity:0.2;font-size:18px;">🌀</span>
+                </div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);margin-left:auto;" id="fan-count">0/3 instalados</span>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- LIST VIEW -->
+      <div class="list-view" id="list-view">
+        <div id="list-slots-container"></div>
+      </div>
+    </div>
+
+    <!-- BUDGET BAR -->
+    <div class="budget-bar">
+      <span class="budget-label">Presupuesto</span>
+      <div class="budget-track">
+        <div class="budget-fill" id="budget-fill" style="width:0%"></div>
+      </div>
+      <span class="budget-amount">
+        <span id="spent-amount">$0</span>
+        <span style="color:var(--text-dim);font-size:10px;"> / $2000</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- INFO PANEL -->
+  <div class="info-panel">
+    <div class="info-tabs">
+      <div class="info-tab active" onclick="switchInfoTab('progress', this)">Build</div>
+      <div class="info-tab" onclick="switchInfoTab('specs', this)">Specs</div>
+      <div class="info-tab" onclick="switchInfoTab('perf', this)">Perf.</div>
+      <div class="info-tab" onclick="switchInfoTab('compat', this)">Estado</div>
+    </div>
+
+    <div class="info-content">
+      <!-- PROGRESS -->
+      <div class="info-section active" id="tab-progress">
+        <div class="progress-section">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:12px;">Lista de Ensamblaje</div>
+          <div id="progress-list"></div>
+        </div>
+      </div>
+
+      <!-- SPECS -->
+      <div class="info-section" id="tab-specs">
+        <div id="specs-content" style="padding:8px;"></div>
+      </div>
+
+      <!-- PERFORMANCE -->
+      <div class="info-section" id="tab-perf">
+        <div class="perf-section" id="perf-content">
+          <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-dim);text-align:center;padding:24px 0;">
+            Instala componentes para ver el rendimiento estimado
+          </div>
+        </div>
+      </div>
+
+      <!-- COMPATIBILITY -->
+      <div class="info-section" id="tab-compat">
+        <div class="compat-section" id="compat-content">
+          <div class="alert info">
+            <span class="alert-icon">ℹ️</span>
+            <span>Instala componentes para verificar compatibilidad</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DRAG GHOST -->
+<div class="drag-ghost" id="drag-ghost">
+  <span id="ghost-icon">📦</span>
+  <span id="ghost-name">Componente</span>
+</div>
+
+<!-- TOOLTIP -->
+<div class="tooltip" id="tooltip">
+  <div class="tooltip-title" id="tooltip-title"></div>
+  <div id="tooltip-body"></div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- BOOT SEQUENCE -->
+<div class="boot-sequence" id="boot-screen">
+  <div class="bios-screen" id="bios-screen"></div>
+</div>
+
+<!-- BUILD COMPLETE -->
+<div class="build-complete" id="build-complete">
+  <div class="complete-card">
+    <div class="complete-icon">🖥️</div>
+    <div class="complete-title">BUILD COMPLETO</div>
+    <div class="complete-sub" id="complete-sub"></div>
+    <div class="complete-specs" id="complete-specs-content"></div>
+    <div class="complete-actions">
+      <button class="btn-primary" onclick="powerOn()">⚡ Encender PC</button>
+      <button class="btn-secondary" onclick="document.getElementById('build-complete').classList.remove('show')">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===========================
+// DATA: COMPONENTS DATABASE
+// ===========================
+const PARTS_DB = [
+  // CPUs
+  { id: 'cpu1', type: 'cpu', brand: 'Intel', name: 'Core i9-14900K', icon: '🔲',
+    specs: { Núcleos: '24 (8P+16E)', Frecuencia: '5.6 GHz Boost', Socket: 'LGA1700', TDP: '125W', Caché: '36 MB L3' },
+    price: 549, perf: { cpu: 98, gaming: 92, workstation: 96, power: 85 },
+    socket: 'LGA1700', color: '#ff6b6b', tier: 'enthusiast' },
+
+  { id: 'cpu2', type: 'cpu', brand: 'Intel', name: 'Core i7-14700K', icon: '🔲',
+    specs: { Núcleos: '20 (8P+12E)', Frecuencia: '5.6 GHz Boost', Socket: 'LGA1700', TDP: '125W', Caché: '33 MB L3' },
+    price: 389, perf: { cpu: 88, gaming: 89, workstation: 85, power: 75 },
+    socket: 'LGA1700', color: '#ff9f43', tier: 'high-end' },
+
+  { id: 'cpu3', type: 'cpu', brand: 'Intel', name: 'Core i5-14600K', icon: '🔲',
+    specs: { Núcleos: '14 (6P+8E)', Frecuencia: '5.3 GHz Boost', Socket: 'LGA1700', TDP: '125W', Caché: '24 MB L3' },
+    price: 249, perf: { cpu: 75, gaming: 84, workstation: 70, power: 60 },
+    socket: 'LGA1700', color: '#54a0ff', tier: 'mid-range' },
+
+  { id: 'cpu4', type: 'cpu', brand: 'AMD', name: 'Ryzen 9 7950X', icon: '🔲',
+    specs: { Núcleos: '16', Frecuencia: '5.7 GHz Boost', Socket: 'AM5', TDP: '170W', Caché: '64 MB L3' },
+    price: 599, perf: { cpu: 99, gaming: 88, workstation: 99, power: 90 },
+    socket: 'AM5', color: '#ff6b6b', tier: 'enthusiast' },
+
+  { id: 'cpu5', type: 'cpu', brand: 'AMD', name: 'Ryzen 7 7800X3D', icon: '🔲',
+    specs: { Núcleos: '8', Frecuencia: '5.0 GHz Boost', Socket: 'AM5', TDP: '120W', Caché: '96 MB L3 (3D)' },
+    price: 449, perf: { cpu: 82, gaming: 99, workstation: 78, power: 72 },
+    socket: 'AM5', color: '#ff9f43', tier: 'high-end' },
+
+  // GPUs
+  { id: 'gpu1', type: 'gpu', brand: 'NVIDIA', name: 'RTX 4090', icon: '🎮',
+    specs: { VRAM: '24 GB GDDR6X', Núcleos: '16,384 CUDA', 'Bus Mem.': '384-bit', TDP: '450W', 'Conect.': 'PCIe 4.0 x16' },
+    price: 1599, perf: { gpu: 100, gaming: 100, workstation: 98, power: 100 },
+    color: '#76c442', tier: 'enthusiast' },
+
+  { id: 'gpu2', type: 'gpu', brand: 'NVIDIA', name: 'RTX 4080 Super', icon: '🎮',
+    specs: { VRAM: '16 GB GDDR6X', Núcleos: '10,240 CUDA', 'Bus Mem.': '256-bit', TDP: '320W', 'Conect.': 'PCIe 4.0 x16' },
+    price: 999, perf: { gpu: 88, gaming: 91, workstation: 86, power: 85 },
+    color: '#76c442', tier: 'high-end' },
+
+  { id: 'gpu3', type: 'gpu', brand: 'NVIDIA', name: 'RTX 4070 Ti', icon: '🎮',
+    specs: { VRAM: '12 GB GDDR6X', Núcleos: '7,680 CUDA', 'Bus Mem.': '192-bit', TDP: '285W', 'Conect.': 'PCIe 4.0 x16' },
+    price: 799, perf: { gpu: 78, gaming: 83, workstation: 74, power: 75 },
+    color: '#76c442', tier: 'mid-range' },
+
+  { id: 'gpu4', type: 'gpu', brand: 'AMD', name: 'Radeon RX 7900 XTX', icon: '🎮',
+    specs: { VRAM: '24 GB GDDR6', Núcleos: '6,144 SP', 'Bus Mem.': '384-bit', TDP: '355W', 'Conect.': 'PCIe 4.0 x16' },
+    price: 899, perf: { gpu: 90, gaming: 93, workstation: 82, power: 92 },
+    color: '#ed1c24', tier: 'enthusiast' },
+
+  { id: 'gpu5', type: 'gpu', brand: 'AMD', name: 'Radeon RX 7800 XT', icon: '🎮',
+    specs: { VRAM: '16 GB GDDR6', Núcleos: '3,840 SP', 'Bus Mem.': '256-bit', TDP: '263W', 'Conect.': 'PCIe 4.0 x16' },
+    price: 499, perf: { gpu: 68, gaming: 71, workstation: 60, power: 68 },
+    color: '#ed1c24', tier: 'mid-range' },
+
+  // RAM
+  { id: 'ram1', type: 'ram', brand: 'G.SKILL', name: 'Trident Z5 32GB DDR5', icon: '💾',
+    specs: { Capacidad: '32 GB (2x16)', Velocidad: 'DDR5-6000', Latencia: 'CL30', Voltaje: '1.35V', Tipo: 'DDR5' },
+    price: 169, perf: { ram: 95, gaming: 88, workstation: 90 },
+    ddr: 'DDR5', color: '#f9ca24', tier: 'high-end' },
+
+  { id: 'ram2', type: 'ram', brand: 'Corsair', name: 'Vengeance 64GB DDR5', icon: '💾',
+    specs: { Capacidad: '64 GB (2x32)', Velocidad: 'DDR5-5600', Latencia: 'CL36', Voltaje: '1.25V', Tipo: 'DDR5' },
+    price: 249, perf: { ram: 90, gaming: 82, workstation: 99 },
+    ddr: 'DDR5', color: '#f9ca24', tier: 'enthusiast' },
+
+  { id: 'ram3', type: 'ram', brand: 'Kingston', name: 'Fury Beast 16GB DDR5', icon: '💾',
+    specs: { Capacidad: '16 GB (2x8)', Velocidad: 'DDR5-5200', Latencia: 'CL40', Voltaje: '1.25V', Tipo: 'DDR5' },
+    price: 89, perf: { ram: 78, gaming: 75, workstation: 72 },
+    ddr: 'DDR5', color: '#f9ca24', tier: 'mid-range' },
+
+  // Storage
+  { id: 'stor1', type: 'storage', brand: 'Samsung', name: '990 Pro 2TB NVMe', icon: '💿',
+    specs: { Capacidad: '2 TB', Interfaz: 'PCIe 4.0 NVMe', 'Lect. Seq.': '7,450 MB/s', 'Esc. Seq.': '6,900 MB/s', Tipo: 'M.2 2280' },
+    price: 189, perf: { storage: 99, gaming: 92 },
+    storType: 'nvme', color: '#00cec9', tier: 'high-end' },
+
+  { id: 'stor2', type: 'storage', brand: 'WD', name: 'Black SN850X 1TB', icon: '💿',
+    specs: { Capacidad: '1 TB', Interfaz: 'PCIe 4.0 NVMe', 'Lect. Seq.': '7,300 MB/s', 'Esc. Seq.': '6,600 MB/s', Tipo: 'M.2 2280' },
+    price: 109, perf: { storage: 95, gaming: 90 },
+    storType: 'nvme', color: '#00cec9', tier: 'high-end' },
+
+  { id: 'stor3', type: 'storage', brand: 'Samsung', name: '870 EVO 2TB SATA', icon: '💿',
+    specs: { Capacidad: '2 TB', Interfaz: 'SATA III', 'Lect. Seq.': '560 MB/s', 'Esc. Seq.': '530 MB/s', Tipo: '2.5" SATA' },
+    price: 129, perf: { storage: 65, gaming: 70 },
+    storType: 'sata', color: '#00cec9', tier: 'mid-range' },
+
+  { id: 'stor4', type: 'storage', brand: 'Seagate', name: 'Barracuda 4TB HDD', icon: '🖥️',
+    specs: { Capacidad: '4 TB', Interfaz: 'SATA III', Velocidad: '5400 RPM', 'Caché': '256 MB', Tipo: '3.5" SATA' },
+    price: 79, perf: { storage: 40, gaming: 45 },
+    storType: 'hdd', color: '#636e72', tier: 'value' },
+
+  // Coolers
+  { id: 'cool1', type: 'cooler', brand: 'NZXT', name: 'Kraken Elite 360 AIO', icon: '🌀',
+    specs: { Tipo: 'AIO Líquido', Radiador: '360mm', Fans: '3x 120mm', Socket: 'LGA1700/AM5', 'Max TDP': '350W' },
+    price: 279, perf: { cooling: 98, noise: 75 },
+    coolerType: 'aio', color: '#74b9ff', tier: 'enthusiast' },
+
+  { id: 'cool2', type: 'cooler', brand: 'be quiet!', name: 'Dark Rock Pro 5', icon: '🌀',
+    specs: { Tipo: 'Tower Air', Altura: '162mm', Fans: '2x 135mm', Socket: 'LGA1700/AM5', 'Max TDP': '270W' },
+    price: 99, perf: { cooling: 88, noise: 92 },
+    coolerType: 'air', color: '#74b9ff', tier: 'high-end' },
+
+  { id: 'cool3', type: 'cooler', brand: 'Noctua', name: 'NH-D15 chromax', icon: '🌀',
+    specs: { Tipo: 'Tower Air Dual', Altura: '165mm', Fans: '2x 140mm', Socket: 'LGA1700/AM5', 'Max TDP': '250W' },
+    price: 119, perf: { cooling: 94, noise: 95 },
+    coolerType: 'air', color: '#74b9ff', tier: 'high-end' },
+
+  { id: 'cool4', type: 'cooler', brand: 'Cooler Master', name: 'Hyper 212 Black', icon: '🌀',
+    specs: { Tipo: 'Tower Air', Altura: '158mm', Fans: '1x 120mm', Socket: 'LGA1700/AM5', 'Max TDP': '180W' },
+    price: 39, perf: { cooling: 70, noise: 80 },
+    coolerType: 'air', color: '#74b9ff', tier: 'budget' },
+
+  // PSU
+  { id: 'psu1', type: 'psu', brand: 'Seasonic', name: 'Prime TX-1000W', icon: '🔌',
+    specs: { Potencia: '1000W', Eficiencia: '80+ Titanium', Modular: 'Full Modular', Certs: 'ATX 3.0', Protecciones: 'OCP/OVP/SCP' },
+    price: 299, perf: { psu: 100, power: 1000 },
+    wattage: 1000, color: '#a29bfe', tier: 'enthusiast' },
+
+  { id: 'psu2', type: 'psu', brand: 'Corsair', name: 'RM850x Gold', icon: '🔌',
+    specs: { Potencia: '850W', Eficiencia: '80+ Gold', Modular: 'Full Modular', Certs: 'ATX 3.0', Protecciones: 'OCP/OVP/SCP' },
+    price: 149, perf: { psu: 88, power: 850 },
+    wattage: 850, color: '#a29bfe', tier: 'high-end' },
+
+  { id: 'psu3', type: 'psu', brand: 'EVGA', name: 'SuperNOVA 650W Gold', icon: '🔌',
+    specs: { Potencia: '650W', Eficiencia: '80+ Gold', Modular: 'Full Modular', Certs: 'ATX 2.4', Protecciones: 'OCP/OVP/SCP' },
+    price: 89, perf: { psu: 72, power: 650 },
+    wattage: 650, color: '#a29bfe', tier: 'mid-range' },
+
+  // Fans
+  { id: 'fan1', type: 'fan', brand: 'Corsair', name: 'iCUE LL120 RGB', icon: '🌀',
+    specs: { Diámetro: '120mm', RPM: '600-1500', CFM: '47.3', dBA: '25.2 dBA', Conector: 'PWM 4-pin' },
+    price: 35, perf: { airflow: 80, noise: 85 },
+    color: '#fd79a8', tier: 'mid-range' },
+
+  { id: 'fan2', type: 'fan', brand: 'Noctua', name: 'NF-A12x25 PWM', icon: '🌀',
+    specs: { Diámetro: '120mm', RPM: '450-2000', CFM: '60.1', dBA: '22.6 dBA', Conector: 'PWM 4-pin' },
+    price: 29, perf: { airflow: 95, noise: 98 },
+    color: '#fd79a8', tier: 'high-end' },
+
+  { id: 'fan3', type: 'fan', brand: 'be quiet!', name: 'Silent Wings 4 140mm', icon: '🌀',
+    specs: { Diámetro: '140mm', RPM: '400-1600', CFM: '68.4', dBA: '18.8 dBA', Conector: 'PWM 4-pin' },
+    price: 22, perf: { airflow: 88, noise: 99 },
+    color: '#fd79a8', tier: 'high-end' },
+];
+
+// ===========================
+// STATE
+// ===========================
+const state = {
+  installed: {
+    cpu: null, gpu: null, cooler: null, psu: null,
+    ram1: null, ram2: null, ram3: null, ram4: null,
+    m2: null, ssd: null, hdd: null,
+    fan1: null, fan2: null, fan3: null,
+  },
+  dragPart: null,
+  currentCategory: 'all',
+  searchQuery: '',
+  budget: 2000,
+};
+
+const SLOT_META = {
+  cpu:    { label: 'CPU', icon: '🔲', accepts: 'cpu', required: true, desc: 'Procesador principal' },
+  gpu:    { label: 'GPU', icon: '🎮', accepts: 'gpu', required: true, desc: 'Tarjeta gráfica' },
+  cooler: { label: 'CPU Cooler', icon: '🌀', accepts: 'cooler', required: true, desc: 'Sistema de enfriamiento' },
+  psu:    { label: 'Fuente de poder', icon: '🔌', accepts: 'psu', required: true, desc: 'Fuente de alimentación' },
+  ram1:   { label: 'RAM DIMM_A1', icon: '💾', accepts: 'ram', required: true, desc: 'Memoria DDR5 slot A1' },
+  ram2:   { label: 'RAM DIMM_A2', icon: '💾', accepts: 'ram', required: false, desc: 'Memoria DDR5 slot A2' },
+  ram3:   { label: 'RAM DIMM_B1', icon: '💾', accepts: 'ram', required: false, desc: 'Memoria DDR5 slot B1' },
+  ram4:   { label: 'RAM DIMM_B2', icon: '💾', accepts: 'ram', required: false, desc: 'Memoria DDR5 slot B2' },
+  m2:     { label: 'NVMe M.2', icon: '💿', accepts: 'storage', required: true, desc: 'SSD NVMe PCIe' },
+  ssd:    { label: 'SATA SSD', icon: '💿', accepts: 'storage', required: false, desc: 'SSD SATA 2.5"' },
+  hdd:    { label: 'HDD 3.5"', icon: '🖥️', accepts: 'storage', required: false, desc: 'Disco duro mecánico' },
+  fan1:   { label: 'Fan 1', icon: '🌀', accepts: 'fan', required: false, desc: 'Ventilador de caja 1' },
+  fan2:   { label: 'Fan 2', icon: '🌀', accepts: 'fan', required: false, desc: 'Ventilador de caja 2' },
+  fan3:   { label: 'Fan 3', icon: '🌀', accepts: 'fan', required: false, desc: 'Ventilador de caja 3' },
+};
+
+const REQUIRED_SLOTS = Object.entries(SLOT_META).filter(([,m]) => m.required).map(([k]) => k);
+
+// ===========================
+// RENDER PARTS LIST
+// ===========================
+function renderPartsList() {
+  const list = document.getElementById('parts-list');
+  const q = state.searchQuery.toLowerCase();
+
+  const filtered = PARTS_DB.filter(p => {
+    const matchCat = state.currentCategory === 'all' || p.type === state.currentCategory;
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q);
+    return matchCat && matchSearch;
+  });
+
+  list.innerHTML = filtered.map(p => {
+    const isInstalled = isPartInstalled(p.id);
+    const specsShort = Object.entries(p.specs).slice(0,2).map(([k,v]) => `${k}: ${v}`).join(' · ');
+    return `
+    <div class="part-card ${isInstalled ? 'installed' : ''}"
+      draggable="${!isInstalled}"
+      data-id="${p.id}"
+      onmousedown="startDrag(event,'${p.id}')"
+      ondragstart="onDragStart(event,'${p.id}')"
+      ondragend="onDragEnd(event)"
+      onmouseenter="showTooltip(event,'${p.id}')"
+      onmouseleave="hideTooltip()">
+      <div class="part-icon" style="border-color:${p.color}22;background:${p.color}11;">
+        <span style="font-size:22px;">${p.icon}</span>
+      </div>
+      <div class="part-info">
+        <div class="part-brand" style="color:${p.color};">${p.brand} · ${p.tier.toUpperCase()}</div>
+        <div class="part-name">${p.name}</div>
+        <div class="part-specs">${specsShort}</div>
+      </div>
+      <div class="part-price">$${p.price}</div>
+    </div>`;
+  }).join('');
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div style="text-align:center;padding:32px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);">
+      No se encontraron componentes</div>`;
+  }
+}
+
+function isPartInstalled(partId) {
+  return Object.values(state.installed).some(p => p && p.id === partId);
+}
+
+// ===========================
+// DRAG & DROP
+// ===========================
+let mouseGhost = { active: false };
+
+function onDragStart(e, partId) {
+  const part = PARTS_DB.find(p => p.id === partId);
+  if (!part) return;
+  state.dragPart = part;
+  e.dataTransfer.setData('partId', partId);
+  const ghost = document.getElementById('drag-ghost');
+  ghost.classList.add('active');
+  document.getElementById('ghost-icon').textContent = part.icon;
+  document.getElementById('ghost-name').textContent = part.name;
+  // hide default ghost
+  const blank = document.createElement('canvas');
+  blank.width = blank.height = 1;
+  e.dataTransfer.setDragImage(blank, 0, 0);
+}
+
+function onDragEnd(e) {
+  state.dragPart = null;
+  document.getElementById('drag-ghost').classList.remove('active');
+}
+
+document.addEventListener('dragover', (e) => {
+  const ghost = document.getElementById('drag-ghost');
+  if (ghost.classList.contains('active')) {
+    ghost.style.left = (e.clientX + 14) + 'px';
+    ghost.style.top = (e.clientY + 14) + 'px';
+  }
+});
+
+function dragOver(e, slotType) {
+  e.preventDefault();
+  if (!state.dragPart) return;
+  if (state.dragPart.type === slotType || (slotType === 'ram' && state.dragPart.type === 'ram')) {
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+
+function dragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function dropPart(e, slotKey) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const partId = e.dataTransfer.getData('partId') || (state.dragPart && state.dragPart.id);
+  if (!partId) return;
+  installPart(partId, slotKey);
+}
+
+// ===========================
+// INSTALL / REMOVE
+// ===========================
+function installPart(partId, slotKey) {
+  const part = PARTS_DB.find(p => p.id === partId);
+  if (!part) return;
+  const meta = SLOT_META[slotKey];
+  if (!meta) return;
+
+  // Check type compatibility
+  if (part.type !== meta.accepts) {
+    showToast(`❌ ${part.name} no es compatible con este slot`, 'error');
+    return;
+  }
+
+  // Check if slot already has same part
+  if (state.installed[slotKey] && state.installed[slotKey].id === partId) return;
+
+  // Remove from other slots if same part
+  for (const key in state.installed) {
+    if (state.installed[key] && state.installed[key].id === partId) {
+      state.installed[key] = null;
+      updateSlotUI(key, null);
+    }
+  }
+
+  // Check if slot is occupied
+  if (state.installed[slotKey]) {
+    removePart(slotKey);
+  }
+
+  state.installed[slotKey] = part;
+  updateSlotUI(slotKey, part);
+  updateAll();
+  showToast(`✅ ${part.name} instalado correctamente`, 'success');
+
+  // Check if build complete
+  checkBuildComplete();
+}
+
+function removePart(slotKey) {
+  const part = state.installed[slotKey];
+  if (!part) return;
+  state.installed[slotKey] = null;
+  updateSlotUI(slotKey, null);
+  updateAll();
+  showToast(`↩ ${part.name} removido`, 'warning');
+}
+
+function updateSlotUI(slotKey, part) {
+  const slotEl = document.getElementById(`slot-${slotKey}`);
+  if (!slotEl) return;
+
+  const meta = SLOT_META[slotKey];
+
+  if (part) {
+    slotEl.classList.add('filled');
+    const isRam = slotEl.classList.contains('ram-slot');
+    const isFan = slotEl.classList.contains('fan-slot');
+
+    if (isRam) {
+      slotEl.innerHTML = `
+        <span>${part.icon}</span>
+        <span style="font-size:9px;font-family:'JetBrains Mono',monospace;color:var(--amber);flex:1;">${part.name.split(' ')[0]} ${part.specs['Capacidad']?.split(' ')[0] || ''}</span>
+        <div class="ram-bar" style="width:60px;"></div>
+        <button class="slot-remove-btn" onclick="removePart('${slotKey}')">✕</button>`;
+    } else if (isFan) {
+      slotEl.innerHTML = `<span class="fan-spinning">${part.icon}</span>
+        <button class="slot-remove-btn" onclick="removePart('${slotKey}')">✕</button>`;
+    } else {
+      slotEl.innerHTML = `
+        <div class="circuit-flash"></div>
+        <button class="slot-remove-btn" onclick="removePart('${slotKey}')">✕</button>
+        <div class="installed-component">
+          <span class="installed-icon">${part.icon}</span>
+          <span class="installed-name">${part.name}</span>
+          <span class="installed-brand">${part.brand}</span>
+        </div>`;
+      setTimeout(() => {
+        const flash = slotEl.querySelector('.circuit-flash');
+        if (flash) flash.remove();
+      }, 900);
+    }
+  } else {
+    slotEl.classList.remove('filled');
+    const isRam = slotEl.classList.contains('ram-slot');
+    const isFan = slotEl.classList.contains('fan-slot');
+
+    if (isRam) {
+      const ramNames = { 'slot-ram1': 'DIMM_A1', 'slot-ram2': 'DIMM_A2', 'slot-ram3': 'DIMM_B1', 'slot-ram4': 'DIMM_B2' };
+      slotEl.innerHTML = `<span>💾</span><span style="flex:1;font-size:9px;">${ramNames[`slot-${slotKey}`] || slotKey}</span>`;
+    } else if (isFan) {
+      slotEl.innerHTML = `<span style="opacity:0.2;font-size:18px;">🌀</span>`;
+    } else {
+      slotEl.innerHTML = `
+        <span class="slot-icon-hint">${meta.icon}</span>
+        <span class="slot-label">${meta.label}</span>`;
+    }
+  }
+}
+
+// ===========================
+// LIST VIEW CLICK (for list view)
+// ===========================
+function listViewClick(slotKey) {
+  // If in list view, scroll to show options
+  const meta = SLOT_META[slotKey];
+  if (!meta) return;
+
+  // Switch to the correct category in parts panel and highlight
+  filterCategory(meta.accepts, null);
+  document.getElementById('parts-list').scrollTop = 0;
+
+  // Highlight the slot
+  const slotEl = document.getElementById(`slot-${slotKey}`);
+  if (slotEl && !state.installed[slotKey]) {
+    slotEl.style.outline = `2px solid var(--cyan)`;
+    setTimeout(() => slotEl.style.outline = '', 1500);
+  }
+
+  showToast(`Arrastra un componente de tipo ${meta.label} al slot`, 'info');
+}
+
+// ===========================
+// LIST VIEW RENDER
+// ===========================
+function renderListView() {
+  const container = document.getElementById('list-slots-container');
+  container.innerHTML = Object.entries(SLOT_META).map(([key, meta]) => {
+    const part = state.installed[key];
+    return `
+    <div class="list-slot-row ${part ? 'filled' : ''}" 
+      data-accepts="${meta.accepts}"
+      ondragover="event.preventDefault();this.classList.add('drag-over')"
+      ondragleave="this.classList.remove('drag-over')"
+      ondrop="this.classList.remove('drag-over');dropPart(event,'${key}')">
+      <div class="list-slot-icon">${part ? part.icon : meta.icon}</div>
+      <div class="list-slot-info">
+        <div class="list-slot-type">${meta.label}</div>
+        <div class="list-slot-name ${part ? '' : 'empty'}">${part ? `${part.brand} ${part.name}` : 'Sin instalar'}</div>
+        ${part ? `<div class="list-slot-specs">${Object.entries(part.specs).slice(0,2).map(([k,v])=>`${k}: ${v}`).join(' · ')}</div>` : `<div class="list-slot-specs" style="color:var(--text-dim);">${meta.desc}</div>`}
+      </div>
+      ${part ? `
+        <div>
+          <div class="list-status filled-status">Instalado</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;color:var(--green);margin-top:4px;">$${part.price}</div>
+        </div>
+        <button class="btn-secondary" style="padding:4px 8px;font-size:10px;" onclick="removePart('${key}')">✕</button>
+      ` : `<div class="list-status empty-status">Vacío</div>`}
+    </div>`;
+  }).join('');
+}
+
+// ===========================
+// PERFORMANCE & SPECS
+// ===========================
+function calcTotalPower() {
+  let watts = 0;
+  const cpu = state.installed.cpu;
+  const gpu = state.installed.gpu;
+  if (cpu) watts += parseInt(cpu.specs['TDP']) || 0;
+  if (gpu) watts += parseInt(gpu.specs['TDP']) || 0;
+  watts += 50; // mobo, ram, storage baseline
+  return watts;
+}
+
+function calcPerformance() {
+  const cpu = state.installed.cpu;
+  const gpu = state.installed.gpu;
+  const ram = [state.installed.ram1, state.installed.ram2].filter(Boolean);
+  const stor = [state.installed.m2, state.installed.ssd, state.installed.hdd].filter(Boolean);
+  const cooler = state.installed.cooler;
+
+  const gaming = cpu && gpu ? Math.round((cpu.perf.gaming * 0.35 + gpu.perf.gaming * 0.55 + (ram.length > 0 ? ram[0].perf.gaming : 50) * 0.1)) : 0;
+  const workstation = cpu && gpu ? Math.round((cpu.perf.workstation * 0.5 + gpu.perf.workstation * 0.3 + (ram.length > 0 ? ram[0].perf.workstation : 50) * 0.2)) : 0;
+  const cpuScore = cpu ? cpu.perf.cpu : 0;
+  const gpuScore = gpu ? gpu.perf.gpu : 0;
+  const storScore = stor.length > 0 ? Math.max(...stor.map(s => s.perf.storage)) : 0;
+  const thermals = cooler ? cooler.perf.cooling : 0;
+  const ramScore = ram.length > 0 ? ram[0].perf.ram * Math.min(ram.length, 2) / 2 : 0;
+
+  return { gaming, workstation, cpuScore, gpuScore, storScore, thermals, ramScore };
+}
+
+function updatePerformance() {
+  const perf = calcPerformance();
+  const content = document.getElementById('perf-content');
+
+  const bars = [
+    { label: 'Gaming', val: perf.gaming, color: '#00ff88' },
+    { label: 'Workstation', val: perf.workstation, color: '#00d4ff' },
+    { label: 'CPU', val: perf.cpuScore, color: '#ff9f43' },
+    { label: 'GPU', val: perf.gpuScore, color: '#76c442' },
+    { label: 'Almacenamiento', val: perf.storScore, color: '#a29bfe' },
+    { label: 'Térmico', val: perf.thermals, color: '#74b9ff' },
+    { label: 'RAM', val: perf.ramScore, color: '#f9ca24' },
+  ];
+
+  const total = Math.round(bars.reduce((s,b) => s + b.val, 0) / bars.length);
+  const totalColor = total > 80 ? '#00ff88' : total > 50 ? '#ffb700' : total > 0 ? '#ff4757' : '#484f58';
+
+  content.innerHTML = `
+    <div style="text-align:center;padding:16px 0 20px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;">Puntuación Total</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:42px;font-weight:700;color:${totalColor};line-height:1;">${total}</div>
+      <div style="font-size:9px;color:var(--text-dim);font-family:'JetBrains Mono',monospace;">/100</div>
+    </div>
+    ${bars.map(b => `
+    <div class="perf-item">
+      <div class="perf-header">
+        <span class="perf-name">${b.label}</span>
+        <span class="perf-value" style="color:${b.color};">${b.val}</span>
+      </div>
+      <div class="perf-bar">
+        <div class="perf-fill" style="width:${b.val}%;background:${b.color};box-shadow:0 0 6px ${b.color}66;"></div>
+      </div>
+    </div>`).join('')}
+    <div style="padding:12px;background:var(--bg-card);border-radius:6px;margin-top:8px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text-dim);letter-spacing:1px;margin-bottom:8px;text-transform:uppercase;">Consumo Estimado</div>
+      <div style="display:flex;justify-content:space-between;font-family:'JetBrains Mono',monospace;font-size:11px;">
+        <span style="color:var(--text-secondary);">Sistema</span>
+        <span style="color:var(--amber);font-weight:700;">${calcTotalPower()}W</span>
+      </div>
+    </div>`;
+}
+
+// ===========================
+// SPECS
+// ===========================
+function updateSpecs() {
+  const content = document.getElementById('specs-content');
+  const parts = Object.entries(state.installed)
+    .filter(([,p]) => p !== null)
+    .map(([k,p]) => ({ slot: k, part: p }));
+
+  if (parts.length === 0) {
+    content.innerHTML = `<div style="text-align:center;padding:24px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);">Instala componentes para ver las especificaciones</div>`;
+    return;
+  }
+
+  content.innerHTML = parts.map(({ slot, part }) => `
+    <div class="spec-card">
+      <div class="spec-card-title">
+        <span>${part.icon}</span>
+        <span>${SLOT_META[slot].label}</span>
+        <span style="margin-left:auto;color:var(--green);">$${part.price}</span>
+      </div>
+      <div style="font-size:11px;font-weight:600;color:var(--text-primary);margin-bottom:8px;">${part.brand} ${part.name}</div>
+      ${Object.entries(part.specs).map(([k,v]) => `
+        <div class="spec-row">
+          <span class="spec-key">${k}</span>
+          <span class="spec-val">${v}</span>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+// ===========================
+// COMPATIBILITY CHECK
+// ===========================
+function updateCompatibility() {
+  const alerts = [];
+  const cpu = state.installed.cpu;
+  const gpu = state.installed.gpu;
+  const psu = state.installed.psu;
+  const cooler = state.installed.cooler;
+  const ram = [state.installed.ram1, state.installed.ram2, state.installed.ram3, state.installed.ram4].filter(Boolean);
+
+  // CPU installed
+  if (cpu) {
+    alerts.push({ type: 'success', msg: `✅ CPU ${cpu.brand} ${cpu.name} detectado (${cpu.socket})` });
+    if (cooler) {
+      const cpuTdp = parseInt(cpu.specs['TDP']) || 0;
+      const maxTdp = parseInt(cooler.specs['Max TDP']) || 0;
+      if (maxTdp >= cpuTdp) {
+        alerts.push({ type: 'success', msg: `✅ Cooler soporta ${cpuTdp}W TDP del CPU` });
+      } else {
+        alerts.push({ type: 'error', msg: `⚠️ Cooler solo soporta ${maxTdp}W pero CPU necesita ${cpuTdp}W` });
+      }
+    }
+  } else {
+    alerts.push({ type: 'info', msg: 'ℹ️ CPU no instalado' });
+  }
+
+  // RAM
+  if (ram.length > 0) {
+    const total = ram.reduce((s, r) => {
+      const cap = r.specs['Capacidad'] || '';
+      const gb = parseInt(cap) || 0;
+      return s + gb;
+    }, 0);
+    alerts.push({ type: 'success', msg: `✅ ${ram.length} módulo(s) RAM instalado(s) — ${total}GB total` });
+    if (ram.length === 2 || ram.length === 4) {
+      alerts.push({ type: 'success', msg: `✅ Dual Channel activo (mejor rendimiento)` });
+    }
+  }
+
+  // PSU power check
+  if (psu && (cpu || gpu)) {
+    const required = calcTotalPower();
+    const available = psu.wattage;
+    const headroom = available - required;
+    if (headroom >= 150) {
+      alerts.push({ type: 'success', msg: `✅ PSU ${available}W — Margen de ${headroom}W disponible` });
+    } else if (headroom >= 0) {
+      alerts.push({ type: 'warning', msg: `⚠️ PSU ${available}W — Margen bajo (${headroom}W). Considera más potencia.` });
+    } else {
+      alerts.push({ type: 'error', msg: `❌ PSU insuficiente! Necesitas ${required}W, tienes ${available}W` });
+    }
+  }
+
+  // Storage
+  const nvme = state.installed.m2;
+  if (nvme) {
+    alerts.push({ type: 'success', msg: `✅ NVMe ${nvme.name} listo en slot M.2` });
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({ type: 'info', msg: 'ℹ️ Instala componentes para verificar compatibilidad' });
+  }
+
+  const content = document.getElementById('compat-content');
+  content.innerHTML = alerts.map(a => `
+    <div class="alert ${a.type}">
+      <span>${a.msg}</span>
+    </div>`).join('');
+}
+
+// ===========================
+// PROGRESS TRACKER
+// ===========================
+function updateProgress() {
+  const items = [
+    { key: 'cpu', label: 'Instalar CPU' },
+    { key: 'cooler', label: 'Instalar CPU Cooler' },
+    { key: 'ram1', label: 'Instalar RAM (mín. 1 módulo)' },
+    { key: 'gpu', label: 'Instalar GPU' },
+    { key: 'm2', label: 'Instalar almacenamiento' },
+    { key: 'psu', label: 'Instalar fuente de poder' },
+  ];
+
+  const extraItems = [
+    { check: () => [state.installed.ram1, state.installed.ram2].every(Boolean), label: 'Dual Channel RAM' },
+    { check: () => [state.installed.fan1, state.installed.fan2].some(Boolean), label: 'Ventiladores de caja' },
+  ];
+
+  const storageInstalled = state.installed.m2 || state.installed.ssd || state.installed.hdd;
+
+  const progressEl = document.getElementById('progress-list');
+  progressEl.innerHTML = [
+    ...items.map(i => {
+      const done = i.key === 'm2'
+        ? storageInstalled
+        : state.installed[i.key];
+      return `
+      <div class="progress-item">
+        <div class="progress-check ${done ? 'done' : ''}">${done ? '✓' : ''}</div>
+        <span class="progress-text ${done ? 'done' : ''}">${i.label}</span>
+      </div>`;
+    }),
+    ...extraItems.map(i => {
+      const done = i.check();
+      return `
+      <div class="progress-item">
+        <div class="progress-check ${done ? 'done' : ''}" style="border-color:var(--amber)${done ? '' : ';color:var(--amber)'};">${done ? '✓' : '+'}</div>
+        <span class="progress-text ${done ? 'done' : ''}" style="color:${done ? 'var(--amber)' : 'var(--text-dim)'};">${i.label} <span style="font-size:9px;">(opcional)</span></span>
+      </div>`;
+    })
+  ].join('');
+}
+
+// ===========================
+// BUDGET
+// ===========================
+function updateBudget() {
+  const total = Object.values(state.installed)
+    .filter(Boolean)
+    .reduce((s, p) => s + p.price, 0);
+
+  document.getElementById('total-cost').textContent = `$${total}`;
+  document.getElementById('spent-amount').textContent = `$${total}`;
+
+  const pct = Math.min((total / state.budget) * 100, 100);
+  const fill = document.getElementById('budget-fill');
+  fill.style.width = pct + '%';
+  fill.className = 'budget-fill' + (total > state.budget ? ' over' : '');
+}
+
+// ===========================
+// HEADER STATUS
+// ===========================
+function updateHeaderStatus() {
+  const count = Object.values(state.installed).filter(Boolean).length;
+  const total = Object.keys(state.installed).length;
+  document.getElementById('installed-count').textContent = `${count}/${total}`;
+
+  const allRequired = REQUIRED_SLOTS.every(k => state.installed[k]);
+  const statusEl = document.getElementById('build-status');
+  const powerBtn = document.getElementById('power-btn');
+
+  if (allRequired) {
+    statusEl.textContent = 'LISTO';
+    statusEl.style.color = 'var(--green)';
+    powerBtn.disabled = false;
+  } else {
+    statusEl.textContent = 'INCOMPLETO';
+    statusEl.style.color = 'var(--text-dim)';
+    powerBtn.disabled = true;
+  }
+}
+
+// ===========================
+// BUILD COMPLETE CHECK
+// ===========================
+function checkBuildComplete() {
+  const allRequired = REQUIRED_SLOTS.every(k => state.installed[k]);
+  if (!allRequired) return;
+
+  // Check if just became complete
+  const alreadyShown = sessionStorage.getItem('build-complete-shown');
+  if (alreadyShown) return;
+  sessionStorage.setItem('build-complete-shown', '1');
+
+  setTimeout(() => {
+    const total = Object.values(state.installed).filter(Boolean).reduce((s, p) => s + p.price, 0);
+    const perf = calcPerformance();
+    const cpu = state.installed.cpu;
+    const gpu = state.installed.gpu;
+    const ram = [state.installed.ram1, state.installed.ram2, state.installed.ram3, state.installed.ram4].filter(Boolean);
+
+    document.getElementById('complete-sub').textContent =
+      `Todos los componentes requeridos instalados. Tu build está listo para encenderse.`;
+
+    document.getElementById('complete-specs-content').innerHTML = [
+      ['CPU', `${cpu.brand} ${cpu.name}`],
+      ['GPU', `${gpu.brand} ${gpu.name}`],
+      ['RAM', `${ram.map(r=>r.specs['Capacidad']?.split(' ')[0]||'?').reduce((a,b)=>{const gb=parseInt(a)+(parseInt(b)||0);return gb+'GB'}, 0)}`],
+      ['Perf. Gaming', `${perf.gaming}/100`],
+      ['Costo Total', `$${total}`],
+    ].map(([k,v]) => `
+      <div class="complete-spec-row">
+        <span class="complete-spec-key">${k}</span>
+        <span class="complete-spec-val">${v}</span>
+      </div>`).join('');
+
+    document.getElementById('build-complete').classList.add('show');
+  }, 600);
+}
+
+// ===========================
+// POWER ON / BOOT SEQUENCE
+// ===========================
+function powerOn() {
+  document.getElementById('build-complete').classList.remove('show');
+  const cpu = state.installed.cpu;
+  const gpu = state.installed.gpu;
+  const ram = [state.installed.ram1, state.installed.ram2, state.installed.ram3, state.installed.ram4].filter(Boolean);
+  const stor = [state.installed.m2, state.installed.ssd, state.installed.hdd].filter(Boolean);
+  const psu = state.installed.psu;
+
+  const total = Object.values(state.installed).filter(Boolean).reduce((s, p) => s + p.price, 0);
+  const perf = calcPerformance();
+
+  const ramGb = ram.reduce((s, r) => s + (parseInt(r.specs['Capacidad']) || 0), 0);
+
+  const biosLines = [
+    { text: `BIOS v3.14 — AMI UEFI — © 2024`, delay: 0, cls: '' },
+    { text: ``, delay: 80 },
+    { text: `Initializing hardware...`, delay: 160, cls: 'bios-check' },
+    { text: `CPU: ${cpu?.brand || 'N/A'} ${cpu?.name || 'NOT FOUND'} @ ${cpu?.specs['Frecuencia'] || '?'}`, delay: 400, cls: cpu ? 'bios-ok' : 'bios-error' },
+    { text: `CPU Stepping: C0 | Microcode: 0x0000129`, delay: 550, cls: '' },
+    { text: `Memory Training... ${ramGb}GB DDR5`, delay: 700, cls: 'bios-check' },
+    ...ram.map((r, i) => ({ text: `  DIMM${i+1}: ${r.name} ${r.specs['Velocidad'] || ''} .............. OK`, delay: 800 + i*120, cls: 'bios-ok' })),
+    { text: `XMP/EXPO Profile: Enabled`, delay: 1100, cls: 'bios-ok' },
+    { text: ``, delay: 1200 },
+    { text: `Detecting PCIe Devices...`, delay: 1300, cls: 'bios-check' },
+    { text: `  Slot 1 x16: ${gpu?.brand || 'EMPTY'} ${gpu?.name || ''}`, delay: 1450, cls: gpu ? 'bios-ok' : 'bios-error' },
+    { text: ``, delay: 1600 },
+    { text: `Storage Devices:`, delay: 1700, cls: 'bios-check' },
+    ...stor.map((s, i) => ({ text: `  ${s.specs['Interfaz'] || 'STORAGE'}: ${s.brand} ${s.name} ......... ${s.specs['Capacidad'] || '?'}`, delay: 1800 + i*150, cls: 'bios-ok' })),
+    { text: ``, delay: 2100 },
+    { text: `Power Supply: ${psu ? `${psu.brand} ${psu.wattage}W ${psu.specs['Eficiencia'] || ''}` : 'NOT DETECTED'}`, delay: 2200, cls: psu ? 'bios-ok' : 'bios-error' },
+    { text: `System Power Draw: ~${calcTotalPower()}W`, delay: 2350, cls: '' },
+    { text: ``, delay: 2450 },
+    { text: `POST: All checks passed`, delay: 2600, cls: 'bios-ok' },
+    { text: `Build Score: ${Math.round((perf.gaming + perf.cpuScore + perf.gpuScore) / 3)}/100`, delay: 2750, cls: 'bios-ok' },
+    { text: `Total Build Cost: $${total}`, delay: 2900, cls: 'bios-ok' },
+    { text: ``, delay: 3050 },
+    { text: `Booting OS...`, delay: 3100, cls: 'bios-check' },
+    { text: `█████████████████████ 100%`, delay: 3400, cls: 'bios-ok' },
+    { text: ``, delay: 3700 },
+    { text: `🎉 SISTEMA INICIADO CORRECTAMENTE`, delay: 3800, cls: 'bios-ok' },
+  ];
+
+  const screen = document.getElementById('boot-screen');
+  const bios = document.getElementById('bios-screen');
+  bios.innerHTML = '';
+  screen.classList.add('active');
+
+  biosLines.forEach(({ text, delay, cls }) => {
+    setTimeout(() => {
+      const line = document.createElement('div');
+      line.className = `bios-line ${cls || ''}`;
+      line.style.animationDelay = '0ms';
+      line.textContent = text || '\u00A0';
+      bios.appendChild(line);
+      bios.scrollTop = bios.scrollHeight;
+    }, delay);
+  });
+
+  setTimeout(() => {
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Cerrar BIOS [ESC]';
+    closeBtn.style.cssText = 'margin-top:24px;padding:8px 20px;background:transparent;border:1px solid #00ff88;color:#00ff88;font-family:JetBrains Mono,monospace;font-size:12px;cursor:pointer;letter-spacing:1px;';
+    closeBtn.onclick = () => screen.classList.remove('active');
+    bios.appendChild(closeBtn);
+  }, 4200);
+
+  screen.onclick = (e) => {
+    if (e.target === screen) screen.classList.remove('active');
+  };
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.getElementById('boot-screen').classList.remove('active');
+    document.getElementById('build-complete').classList.remove('show');
+  }
+});
+
+// ===========================
+// RESET
+// ===========================
+function resetBuild() {
+  if (!confirm('¿Resetear el build? Se removerán todos los componentes.')) return;
+  for (const key in state.installed) {
+    state.installed[key] = null;
+    updateSlotUI(key, null);
+  }
+  sessionStorage.removeItem('build-complete-shown');
+  updateAll();
+  showToast('Build reseteado', 'warning');
+}
+
+// ===========================
+// FILTERS
+// ===========================
+function filterCategory(cat, el) {
+  state.currentCategory = cat;
+  document.querySelectorAll('.cat-tab').forEach(t => t.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderPartsList();
+}
+
+function filterParts() {
+  state.searchQuery = document.getElementById('search-input').value;
+  renderPartsList();
+}
+
+// ===========================
+// VIEW SWITCHING
+// ===========================
+function switchView(view, btn) {
+  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  if (view === 'case') {
+    document.getElementById('case-view').classList.remove('hidden');
+    document.getElementById('list-view').classList.remove('active');
+  } else {
+    document.getElementById('case-view').classList.add('hidden');
+    document.getElementById('list-view').classList.add('active');
+    renderListView();
+  }
+}
+
+// ===========================
+// INFO TAB SWITCHING
+// ===========================
+function switchInfoTab(tab, el) {
+  document.querySelectorAll('.info-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.info-section').forEach(s => s.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+}
+
+// ===========================
+// TOOLTIP
+// ===========================
+function showTooltip(e, partId) {
+  const part = PARTS_DB.find(p => p.id === partId);
+  if (!part) return;
+  const tooltip = document.getElementById('tooltip');
+  document.getElementById('tooltip-title').textContent = `${part.brand} ${part.name}`;
+  document.getElementById('tooltip-body').innerHTML = Object.entries(part.specs)
+    .map(([k,v]) => `<div style="display:flex;justify-content:space-between;gap:16px;"><span style="color:var(--text-dim);">${k}</span><span>${v}</span></div>`)
+    .join('') + `<div style="margin-top:6px;border-top:1px solid var(--border);padding-top:6px;color:var(--green);font-weight:700;">$${part.price}</div>`;
+  tooltip.classList.add('visible');
+  moveTip(e);
+}
+
+function hideTooltip() {
+  document.getElementById('tooltip').classList.remove('visible');
+}
+
+function moveTip(e) {
+  const t = document.getElementById('tooltip');
+  const x = e.clientX + 16;
+  const y = e.clientY + 16;
+  const rect = t.getBoundingClientRect();
+  t.style.left = Math.min(x, window.innerWidth - rect.width - 8) + 'px';
+  t.style.top = Math.min(y, window.innerHeight - rect.height - 8) + 'px';
+}
+
+document.addEventListener('mousemove', (e) => {
+  const tooltip = document.getElementById('tooltip');
+  if (tooltip.classList.contains('visible')) moveTip(e);
+});
+
+// ===========================
+// TOAST
+// ===========================
+function showToast(msg, type = 'info') {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  const borderColors = { success: 'var(--green)', error: 'var(--red)', warning: 'var(--amber)', info: 'var(--cyan)' };
+  toast.style.borderLeftColor = borderColors[type] || 'var(--cyan)';
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 2800);
+}
+
+// ===========================
+// UPDATE ALL
+// ===========================
+function updateAll() {
+  renderPartsList();
+  updateProgress();
+  updateSpecs();
+  updatePerformance();
+  updateCompatibility();
+  updateBudget();
+  updateHeaderStatus();
+
+  // update fan counter
+  const fanCount = [state.installed.fan1, state.installed.fan2, state.installed.fan3].filter(Boolean).length;
+  document.getElementById('fan-count').textContent = `${fanCount}/3 instalados`;
+}
+
+// ===========================
+// DRAG START FIX (also for touch simulation)
+// ===========================
+function startDrag(e, partId) {
+  const part = PARTS_DB.find(p => p.id === partId);
+  if (!part || isPartInstalled(part.id)) return;
+  state.dragPart = part;
+}
+
+// ===========================
+// INIT
+// ===========================
+updateAll();
+renderPartsList();
+
+// Show welcome toast
+setTimeout(() => showToast('👋 Arrastra componentes al gabinete para ensamblar tu PC', 'info'), 500);
+</script>
+</body>
+</html>
